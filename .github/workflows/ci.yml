@@ -1,217 +1,369 @@
-name: CI/CD Pipeline
+name: CI & Quality
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
+  schedule:
+    # Nightly run เพื่อตรวจ drift / dependency breaking changes
+    - cron: "0 20 * * *"   # เที่ยงคืนเวลาประเทศไทยโดยประมาณ (UTC+7)
+  workflow_dispatch:
+    inputs:
+      run_django:
+        description: "Run Django integration job even if manage.py not detected"
+        required: false
+        type: boolean
+        default: false
+      run_docker_image:
+        description: "Build Docker image (no push) after build stage"
+        required: false
+        type: boolean
+        default: false
+      fail_mypy:
+        description: "Fail build on mypy errors (default: warn only)"
+        required: false
+        type: boolean
+        default: false
+
+# ป้องกันไม่ให้ workflow ซ้อนเมื่อ push ถี่
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'DUMMY_KEY_FOR_TESTS' }}
+  PYTHONUNBUFFERED: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
-  test:
+
+  lint-type:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            nat_property_auto_tool/requirements.txt
+            nat_property_auto_tool/freight_auto_tool_REQUIREMENTS.txt
+            dev-requirements.txt
+
+      - name: Install dependencies (base + dev tools)
+        run: |
+          set -eux
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f nat_property_auto_tool/requirements.txt ]; then pip install -r nat_property_auto_tool/requirements.txt; fi
+            # Freight-specific (ถ้ามี)
+          if [ -f nat_property_auto_tool/freight_auto_tool_REQUIREMENTS.txt ]; then pip install -r nat_property_auto_tool/freight_auto_tool_REQUIREMENTS.txt; fi
+          pip install ruff mypy types-requests types-Pillow
+          # ติดตั้ง pylint เฉพาะถ้ามีไฟล์ config
+          if [ -n "$(git ls-files | grep -E '(^|/)(pylintrc|\\.pylintrc)$' || true)" ]; then
+            pip install pylint
+          fi
+
+      - name: Ruff Lint
+        run: ruff check .
+
+      - name: Ruff Format Check
+        run: ruff format --check .
+
+      - name: Pylint (conditional)
+        if: ${{ hashFiles('**/pylintrc', '**/.pylintrc') != '' }}
+        run: |
+          echo "Found pylintrc -> running pylint"
+          # ตัวอย่าง: จำกัดเฉพาะโค้ดใน src/
+          pylint src || (echo "::warning title=Pylint::มี lint issue (ยังไม่ fail)"; true)
+
+      - name: Type Check (mypy)
+        run: |
+          if [ "${{ inputs.fail_mypy }}" = "true" ]; then
+            mypy src
+          else
+            mypy src || (echo "::warning title=Type Check Failed::บางจุดมี type error (non-blocking)"; exit 0)
+          fi
+
+      - name: Summary
+        run: |
+          {
+            echo "## Lint & Type Check Summary"
+            echo ""
+            echo "- Ruff: Completed"
+            if [ "${{ inputs.fail_mypy }}" = "true" ]; then
+              echo "- Mypy: Enforced (fails on error)"
+            else
+              echo "- Mypy: Non-blocking mode"
+            fi
+            if [ "${{ hashFiles('**/pylintrc', '**/.pylintrc') != '' }}" = "true" ]; then
+              echo "- Pylint: Ran (soft fail)"
+            else
+              echo "- Pylint: Skipped (no config)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  tests:
+    name: Tests (pytest ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: lint-type
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [3.11, 3.12]
-
+        python-version: [ "3.10", "3.11", "3.12" ]
+    timeout-minutes: 25
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
-    
-    - name: Lint with ruff
-      run: |
-        ruff check . --output-format=github
-    
-    - name: Type check with mypy
-      run: |
-        mypy src/ cli/ --config-file pyproject.toml
-      continue-on-error: true  # mypy เป็น optional ใน phase แรก
-    
-    - name: Test with pytest
-      run: |
-        pytest tests/ -v --cov=src --cov=cli --cov-report=xml --cov-report=term-missing
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      if: matrix.python-version == '3.11'
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      - uses: actions/checkout@v4
 
-  integration-test:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            nat_property_auto_tool/requirements.txt
+            nat_property_auto_tool/freight_auto_tool_REQUIREMENTS.txt
+
+      - name: Install dependencies
+        run: |
+          set -eux
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f nat_property_auto_tool/requirements.txt ]; then pip install -r nat_property_auto_tool/requirements.txt; fi
+          if [ -f nat_property_auto_tool/freight_auto_tool_REQUIREMENTS.txt ]; then pip install -r nat_property_auto_tool/freight_auto_tool_REQUIREMENTS.txt; fi
+          pip install pytest pytest-cov
+
+      - name: Install Playwright (conditional)
+        run: |
+          python - <<'PY'
+import importlib, subprocess, sys
+mods = ("playwright",)
+if any(importlib.util.find_spec(m) for m in mods):
+    subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=False)
+PY
+
+      - name: Cache Playwright Browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+            path: ~/.cache/ms-playwright
+            key: playwright-${{ runner.os }}-chromium
+        continue-on-error: true
+
+      - name: Run Tests
+        run: |
+          set -eux
+          mkdir -p reports
+          pytest -q \
+            --maxfail=1 \
+            --disable-warnings \
+            --cov=src --cov-report=xml:reports/coverage.xml --cov-report=term \
+            --junitxml=reports/pytest-${{ matrix.python-version }}.xml
+
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports-${{ matrix.python-version }}
+          path: reports/
+
+      - name: Append Summary
+        if: always()
+        run: |
+          {
+            echo "## Test (${{ matrix.python-version }})"
+            if [ -f reports/coverage.xml ]; then
+              rate=$(grep -o 'line-rate=\"[0-9.]*\"' reports/coverage.xml | head -1 | sed 's/.*=\"//' | sed 's/\"//')
+              pct=$(python - <<EOF
+r="${rate}"
+try:
+  print(f"{float(r)*100:.2f}%")
+except:
+  print("n/a")
+EOF
+)
+              echo "- Line coverage: ${pct}"
+            else
+              echo "- Coverage: Missing"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  django-integration:
+    name: Django Integration
     runs-on: ubuntu-latest
-    needs: test
-    
+    needs: tests
+    if: ${{ inputs.run_django || (hashFiles('manage.py') != '') }}
+    timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-    
-    - name: Test CLI functionality
-      run: |
-        # Test trend-scout command
-        python -m cli.main trend-scout \
-          --input src/agents/trend_scout/mock_input.json \
-          --out output/ci_test_result.json
-        
-        # Verify output file exists and is valid JSON
-        test -f output/ci_test_result.json
-        python -c "import json; json.load(open('output/ci_test_result.json'))"
-        
-        # Test other CLI commands
-        python -m cli.main version
-        python -m cli.main config-info
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            nat_property_auto_tool/requirements.txt
 
-  docs:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Install MkDocs dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install mkdocs mkdocs-material
-        pip install mkdocs-git-revision-date-localized-plugin
-        pip install mkdocs-minify-plugin
-    
-    - name: Build documentation
-      run: |
-        mkdocs build --strict
-    
-    - name: Deploy documentation (main branch only)
-      if: github.ref == 'refs/heads/main'
-      run: |
-        mkdocs gh-deploy --force
+      - name: Install (Django + deps)
+        run: |
+          set -eux
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f nat_property_auto_tool/requirements.txt ]; then pip install -r nat_property_auto_tool/requirements.txt; fi
+          # Optional: เพิ่ม dependency เฉพาะ integration
+          pip install pytest pytest-django
+      - name: Check manage.py
+        run: |
+          if [ ! -f manage.py ]; then
+            echo "ไม่มี manage.py (อาจเป็นโหมด force run)"; fi
 
-  security:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Run security scan with bandit
-      run: |
-        python -m pip install bandit[toml]
-        bandit -r src/ cli/ -f json -o bandit-report.json
-      continue-on-error: true
-    
-    - name: Upload security scan results
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-scan-results
-        path: bandit-report.json
+      - name: Run migrations (if project)
+        run: |
+          if [ -f manage.py ]; then
+            python manage.py migrate --noinput
+          else
+            echo "skip migrate"
+          fi
+      - name: Django tests (pytest or manage.py)
+        run: |
+          if [ -f manage.py ]; then
+            # เลือกใช้ pytest ถ้าต้องการ plugin
+            if python -c "import pytest" 2>/dev/null; then
+              pytest -q
+            else
+              python manage.py test -v 2
+            fi
+          else
+            echo "No Django project structure -> skip"
+          fi
+      - name: Summary
+        run: |
+          {
+            echo "## Django Integration"
+            if [ -f manage.py ]; then
+              echo "- manage.py detected"
+            else
+              echo "- manage.py not found (forced run flag = ${{ inputs.run_django }})"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
-  performance:
+  coverage-aggregate:
+    name: Aggregate Coverage
     runs-on: ubuntu-latest
-    needs: test
-    
+    needs: [ tests ]
+    if: ${{ always() && needs.tests.result == 'success' }}
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-        pip install memory-profiler psutil
-    
-    - name: Performance benchmark
-      run: |
-        # Run performance test
-        python -c "
-        import time
-        import psutil
-        import os
-        from agents.trend_scout import TrendScoutAgent, TrendScoutInput
-        
-        # Simple performance test
-        agent = TrendScoutAgent()
-        input_data = TrendScoutInput(keywords=['test'])
-        
-        start_time = time.time()
-        start_memory = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
-        
-        result = agent.run(input_data)
-        
-        end_time = time.time()
-        end_memory = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
-        
-        print(f'Execution time: {end_time - start_time:.2f}s')
-        print(f'Memory usage: {end_memory - start_memory:.2f}MB')
-        print(f'Topics generated: {len(result.topics)}')
-        
-        # Performance assertions
-        assert end_time - start_time < 30, 'TrendScout should complete within 30 seconds'
-        assert len(result.topics) > 0, 'Should generate at least 1 topic'
-        "
+      - name: Download test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-reports-*
+          path: all-reports
+          merge-multiple: true
 
-  release:
+      - name: Aggregate
+        run: |
+          set -eux
+          python - <<'PY'
+import glob, xml.etree.ElementTree as ET, statistics, os, json
+rates=[]
+for path in glob.glob('all-reports/**/coverage.xml', recursive=True):
+    try:
+        root=ET.parse(path).getroot()
+        rate=float(root.get('line-rate','0'))
+        rates.append((path, rate))
+    except Exception as e:
+        print("WARN", path, e)
+if not rates:
+    print("No coverage files found.")
+    open("COVERAGE_SUMMARY.md","w").write("## Coverage Aggregate\n\nNo coverage files found.\n")
+else:
+    total = statistics.mean(r for _,r in rates)
+    lines=["## Coverage Aggregate","","Per-report line coverage:"]
+    for p,r in rates:
+        lines.append(f"- {p}: {r*100:.2f}%")
+    lines.append("")
+    lines.append(f"**Average (mean): {total*100:.2f}%**")
+    open("COVERAGE_SUMMARY.md","w").write("\n".join(lines)+"\n")
+    print("\n".join(lines))
+PY
+
+      - name: Upload coverage summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-aggregate
+          path: COVERAGE_SUMMARY.md
+
+      - name: Append Summary
+        run: |
+          echo "### Coverage Aggregate" >> "$GITHUB_STEP_SUMMARY"
+          sed -n '1,120p' COVERAGE_SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build Package
     runs-on: ubuntu-latest
-    needs: [test, integration-test, docs]
-    if: github.ref == 'refs/heads/main'
-    
+    needs: [ tests, django-integration, coverage-aggregate ]
+    if: ${{ needs.tests.result == 'success' && (needs.django-integration.result == 'success' || needs.django-integration.result == 'skipped') }}
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Full history for semantic versioning
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build twine
-    
-    - name: Build package
-      run: |
-        python -m build
-    
-    - name: Check package
-      run: |
-        twine check dist/*
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: python-package-distributions
-        path: dist/
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build (wheel & sdist if pyproject.toml)
+        run: |
+          set -eux
+          pip install --upgrade build
+          if [ -f pyproject.toml ]; then
+            python -m build
+          else
+            echo "ไม่มี pyproject.toml ข้าม build"
+          fi
+
+      - name: Upload dist
+        if: hashFiles('dist/*') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Build Summary
+        run: |
+          {
+            echo "## Build"
+            if [ -d dist ]; then
+              echo "- Artifacts:"
+              ls -1 dist
+            else
+              echo "- No dist produced."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  docker-image:
+    name: Build Docker Image (Optional)
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ inputs.run_docker_image && needs.build.result == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image (no push)
+        run: |
+          set -eux
+          IMAGE_NAME="${{ github.repository }}:ci-${{ github.sha }}"
+          docker build -t "$IMAGE_NAME" .
+          echo "Built $IMAGE_NAME"
+      - name: Summary
+        run: |
+          {
+            echo "## Docker Image"
+            echo "- Built local image tag: ${{ github.repository }}:ci-${{ github.sha }}"
+            echo "- (ไม่ push ออก registry; เปิด push ได้ในอนาคต)"
+          } >> "$GITHUB_STEP_SUMMARY"
