@@ -1,0 +1,69 @@
+{
+  "keywords": ["ปล่อยวาง", "นอนไม่หลับ", "เครียด", "สมาธิ"],
+  "google_trends": [
+    {
+      "term": "ปล่อยวาง",
+      "score_series": [54, 60, 67, 72, 75],
+      "region": "TH"
+    },
+    {
+      "term": "นอนไม่หลับ",
+      "score_series": [45, 52, 48, 55, 62],
+      "region": "TH"
+    },
+    {
+      "term": "เครียด",
+      "score_series": [78, 82, 79, 85, 88],
+      "region": "TH"
+    }
+  ],
+  "youtube_trending_raw": [
+    {
+      "title": "นอนยังไงให้ใจหยุดฟุ้ง",
+      "views_est": 230000,
+      "age_days": 2,
+      "keywords": ["นอน", "ฟุ้งซ่าน", "ใจ"]
+    },
+    {
+      "title": "วิธีรับมือความเครียดจากงาน",
+      "views_est": 180000,
+      "age_days": 5,
+      "keywords": ["เครียด", "งาน", "รับมือ"]
+    },
+    {
+      "title": "สมาธิ 5 นาที สำหรับคนไม่มีเวลา",
+      "views_est": 350000,
+      "age_days": 7,
+      "keywords": ["สมาธิ", "เวลา", "ง่าย"]
+    }
+  ],
+  "competitor_comments": [
+    {
+      "channel": "คู่เทียบA",
+      "comment": "เครียดนอนไม่หลับทำยังไง ช่วยแนะนำหน่อยค่ะ",
+      "likes": 12
+    },
+    {
+      "channel": "คู่เทียบB", 
+      "comment": "อยากปล่อยวางแต่ทำไม่ได้ มีวิธีไหมครับ",
+      "likes": 8
+    },
+    {
+      "channel": "คู่เทียบC",
+      "comment": "สมาธิยากมาก นั่งแป๊บเดียวก็คิดเรื่องอื่น",
+      "likes": 15
+    }
+  ],
+  "embeddings_similar_groups": [
+    {
+      "group_id": "sleep_issues",
+      "keywords": ["นอนไม่หลับ", "ฝันร้าย", "ตื่นกลางคืน", "หลับยาก"],
+      "similarity_score": 0.85
+    },
+    {
+      "group_id": "stress_management",
+      "keywords": ["เครียด", "กังวล", "ความกดดัน", "รับมือ"],
+      "similarity_score": 0.78
+    }
+  ]
+}

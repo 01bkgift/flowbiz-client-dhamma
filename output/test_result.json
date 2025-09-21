@@ -1,0 +1,315 @@
+{
+  "generated_at": "2025-09-21 04:28:08.177099",
+  "topics": [
+    {
+      "rank": 1,
+      "title": "นอนไม่หลับหรือสมาธิดี",
+      "pillar": "การทำสมาธิ",
+      "predicted_14d_views": 22644,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 1.0,
+        "evergreen": 0.786171650367428,
+        "brand_fit": 0.912513725012432,
+        "composite": 0.9290456575943434
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "นอนไม่หลับ",
+        "สมาธิ"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 2,
+      "title": "เมื่อใจหยพบรับมือ",
+      "pillar": "จิตใจและความสุข",
+      "predicted_14d_views": 19025,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 1.0,
+        "evergreen": 0.7983977654160951,
+        "brand_fit": 0.8583168760467693,
+        "composite": 0.9212628165633776
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "ใจหย",
+        "รับมือ"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 3,
+      "title": "ฝันร้ายและสมาธิ",
+      "pillar": "การทำสมาธิ",
+      "predicted_14d_views": 23955,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 0.9980039440370141,
+        "evergreen": 0.7478392069845411,
+        "brand_fit": 0.892082058587115,
+        "composite": 0.9148771994728118
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "ฝันร้าย",
+        "สมาธิ"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 4,
+      "title": "ใจให้เคร",
+      "pillar": "จิตใจและความสุข",
+      "predicted_14d_views": 19656,
+      "scores": {
+        "search_intent": 0.9647218323074728,
+        "freshness": 1.0,
+        "evergreen": 0.7688430372102136,
+        "brand_fit": 0.8976623978944585,
+        "composite": 0.911159788573687
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "ใจ",
+        "เคร"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 5,
+      "title": "ใจและความกดดัน",
+      "pillar": "จิตใจและความสุข",
+      "predicted_14d_views": 20519,
+      "scores": {
+        "search_intent": 0.9868965881866137,
+        "freshness": 1.0,
+        "evergreen": 0.7933839424573683,
+        "brand_fit": 0.8309815267325414,
+        "composite": 0.9106112674168345
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "ใจ",
+        "ความกดดัน"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 6,
+      "title": "บมหรือปล่อยวางดี",
+      "pillar": "การปล่อยวาง",
+      "predicted_14d_views": 17892,
+      "scores": {
+        "search_intent": 0.9702440628569747,
+        "freshness": 1.0,
+        "evergreen": 0.7583060783918686,
+        "brand_fit": 0.871992761059778,
+        "composite": 0.9050482906670152
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "บม",
+        "ปล่อยวาง"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 7,
+      "title": "สมาธิและยดจากงาน",
+      "pillar": "การทำสมาธิ",
+      "predicted_14d_views": 18206,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 1.0,
+        "evergreen": 0.7016884096581149,
+        "brand_fit": 0.8920459629286136,
+        "composite": 0.9038312950002515
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "สมาธิ",
+        "ยดจากงาน"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 8,
+      "title": "เมื่อเครียดพบใจหย",
+      "pillar": "จิตใจและความสุข",
+      "predicted_14d_views": 24133,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 1.0,
+        "evergreen": 0.8150875579294505,
+        "brand_fit": 0.7482673290978203,
+        "composite": 0.9034253553019267
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน",
+      "raw_keywords": [
+        "เครียด",
+        "ใจหย"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 9,
+      "title": "ปล่อยวางและนอนย",
+      "pillar": "การปล่อยวาง",
+      "predicted_14d_views": 22506,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 1.0,
+        "evergreen": 0.7067660216831809,
+        "brand_fit": 0.8727070143337274,
+        "composite": 0.9012329082875408
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "ปล่อยวาง",
+        "นอนย"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 10,
+      "title": "ปล่อยวางและสมาธิ",
+      "pillar": "การทำสมาธิ",
+      "predicted_14d_views": 24143,
+      "scores": {
+        "search_intent": 0.8310952227040391,
+        "freshness": 0.9460253171584165,
+        "evergreen": 0.8926771303681493,
+        "brand_fit": 0.9471646719411182,
+        "composite": 0.8984371130810768
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "ปล่อยวาง",
+        "สมาธิ"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 11,
+      "title": "จากอยวางแตสู่ใจหย",
+      "pillar": "จิตใจและความสุข",
+      "predicted_14d_views": 22871,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 1.0,
+        "evergreen": 0.6636715002219405,
+        "brand_fit": 0.8973268341494193,
+        "composite": 0.8953832418853691
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "อยวางแต",
+        "ใจหย"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 12,
+      "title": "ใจหรือเครียดดี",
+      "pillar": "จิตใจและความสุข",
+      "predicted_14d_views": 21719,
+      "scores": {
+        "search_intent": 0.9940108757800398,
+        "freshness": 0.8053341550181641,
+        "evergreen": 0.8549324029492844,
+        "brand_fit": 0.8853289827624464,
+        "composite": 0.8903356987783634
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "ใจ",
+        "เครียด"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 13,
+      "title": "จากสมาธิสู่งไง",
+      "pillar": "การทำสมาธิ",
+      "predicted_14d_views": 21660,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 1.0,
+        "evergreen": 0.7103578471143475,
+        "brand_fit": 0.810291848739627,
+        "composite": 0.8896478315265124
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เนื้อหาคงทน + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "สมาธิ",
+        "งไง"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 14,
+      "title": "จากเวลาสู่ใจ",
+      "pillar": "จิตใจและความสุข",
+      "predicted_14d_views": 25033,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 1.0,
+        "evergreen": 0.6441925386277035,
+        "brand_fit": 0.8885277852954352,
+        "composite": 0.888753691716013
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "เวลา",
+        "ใจ"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    },
+    {
+      "rank": 15,
+      "title": "ใจให้สมาธิ",
+      "pillar": "การทำสมาธิ",
+      "predicted_14d_views": 23904,
+      "scores": {
+        "search_intent": 1.0,
+        "freshness": 0.9009368598429386,
+        "evergreen": 0.64034843495171,
+        "brand_fit": 1.0,
+        "composite": 0.8853213236986621
+      },
+      "reason": "ค้นหาสูง + เทรนด์ใหม่ + เข้ากับแบรนด์",
+      "raw_keywords": [
+        "ใจ",
+        "สมาธิ"
+      ],
+      "similar_to": [],
+      "risk_flags": []
+    }
+  ],
+  "discarded_duplicates": [],
+  "meta": {
+    "total_candidates_considered": 1035,
+    "prediction_method": "median_trending * scaling_ratio",
+    "adjustment_notes": "ปรับคะแนนตาม brand fit และ evergreen score",
+    "self_check": {
+      "duplicate_ok": true,
+      "score_range_valid": true
+    }
+  }
+}
