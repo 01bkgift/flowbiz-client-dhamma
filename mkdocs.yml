@@ -1,0 +1,113 @@
+site_name: "เอกสารระบบอัตโนมัติ ธรรมะดีดี"
+site_description: "เอกสารสำหรับระบบการผลิตคอนเทนต์ช่อง YouTube ธรรมะดีดี ด้วย AI Agents"
+site_url: "https://natbkgift.github.io/dhamma-channel-automation"
+repo_url: "https://github.com/natbkgift/dhamma-channel-automation"
+repo_name: "natbkgift/dhamma-channel-automation"
+
+# Theme Configuration
+theme:
+  name: material
+  language: th
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: เปลี่ยนเป็นโหมดมืด
+
+    # Palette toggle for dark mode  
+    - scheme: slate
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: เปลี่ยนเป็นโหมดสว่าง
+        
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+# Navigation
+nav:
+  - "หน้าหลัก": index.md
+  - "สถาปัตยกรรม": ARCHITECTURE.md  
+  - "วงจรการทำงาน Agent": AGENT_LIFECYCLE.md
+  - "Prompt Templates": PROMPTS_OVERVIEW.md
+  - "แผนงาน (Roadmap)": ROADMAP.md
+  - "แก้ไขปัญหา": TROUBLESHOOTING.md
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: natbkgift
+      repo: dhamma-channel-automation
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Plugins
+plugins:
+  - search:
+      lang: th
+  - minify:
+      minify_html: true
+
+# Extra
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/natbkgift/dhamma-channel-automation
+  
+  version:
+    provider: mike
+    default: latest
+
+# Copyright
+copyright: Copyright &copy; 2024 Dhamma Automation Team
