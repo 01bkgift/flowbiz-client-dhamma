@@ -1,19 +1,26 @@
 """
-TopicPrioritizerAgent - Agent สำหรับจัดลำดับความสำคัญของหัวข้อ
+TopicPrioritizerAgent v1 - Agent สำหรับสร้าง Content Calendar
 
-Agent นี้รับหัวข้อจาก TrendScout และจัดลำดับความสำคัญตามเกณฑ์ธุรกิจ
-โดยพิจารณาจาก ROI, ความเสี่ยง, ความเข้ากับแบรนด์ และความยากในการผลิต
+Agent นี้รับหัวข้อจาก TrendScout และสร้างปฏิทินการผลิตเนื้อหา
+โดยจัดลำดับความสำคัญตามกลยุทธ์และกระจายเนื้อหาตลอด 4 สัปดาห์
 """
 
 import logging
+from datetime import datetime
 
 from automation_core.base_agent import BaseAgent
 
 from .model import (
+    CandidateTopic,
+    DiversitySummary,
+    MetaInfo,
+    # Legacy models for backward compatibility
     PrioritizedTopic,
     PriorityInput,
     PriorityOutput,
-    PriorityScore,
+    ScheduledTopic,
+    SelfCheck,
+    UnscheduledTopic,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,188 +28,448 @@ logger = logging.getLogger(__name__)
 
 class TopicPrioritizerAgent(BaseAgent[PriorityInput, PriorityOutput]):
     """
-    Agent สำหรับจัดลำดับความสำคัญของหัวข้อ
+    Agent สำหรับสร้าง Content Calendar จากหัวข้อ
 
     วิธีการทำงาน:
-    1. รับหัวข้อจาก TrendScout
-    2. คำนวณคะแนนในแต่ละมิติ (ROI, Risk, Brand fit, Production difficulty)
-    3. จัดลำดับความสำคัญตามน้ำหนักที่กำหนด
-    4. สร้างคำแนะนำสำหรับการผลิต
+    1. รับหัวข้อผู้สมัครจาก TrendScout
+    2. คำนวณคะแนนความสำคัญตามกลยุทธ์
+    3. จำแนกประเภทเนื้อหา (longform/shorts)
+    4. จัดสรรเนื้อหาในปฏิทิน 4 สัปดาห์
+    5. ตรวจสอบความหลากหลายและข้อจำกัด
     """
 
     def __init__(self):
         super().__init__(
             name="TopicPrioritizerAgent",
             version="1.0.0",
-            description="จัดลำดับความสำคัญของหัวข้อตามเกณฑ์ธุรกิจ",
+            description="สร้าง Content Calendar จากหัวข้อตามกลยุทธ์ที่กำหนด",
         )
 
-        # น้ำหนักสำหรับการคำนวณคะแนนความสำคัญ
-        self.weights = {
-            "roi_potential": 0.40,  # ROI คาดการณ์ (40%)
-            "risk_level": 0.25,  # ความเสี่ยง (25%) - คะแนนสูง = เสี่ยงน้อย
-            "brand_alignment": 0.20,  # ความเข้ากับแบรนด์ (20%)
-            "production_difficulty": 0.15,  # ความยากในการผลิต (15%) - คะแนนสูง = ง่าย
+        # Default pillar performance ถ้าไม่มีข้อมูลประวัติ
+        self.default_pillar_performance = {
+            "ธรรมะประยุกต์": 1.05,
+            "ชาดก/นิทานสอนใจ": 0.92,
+            "ธรรมะสั้น": 1.10,
+            "เจาะลึก/ซีรีส์": 1.18,
+            "Q&A/ตอบคำถาม": 0.88,
+            "สรุปพระสูตร/หนังสือ": 1.00,
         }
 
     def run(self, input_data: PriorityInput) -> PriorityOutput:
-        """ประมวลผลการจัดลำดับความสำคัญของหัวข้อ"""
-
-        logger.info(f"เริ่มจัดลำดับความสำคัญสำหรับ {len(input_data.topics)} หัวข้อ")
-
-        # 1. คำนวณคะแนนความสำคัญสำหรับแต่ละหัวข้อ
-        prioritized_topics = []
-        for topic in input_data.topics:
-            priority_scores = self._calculate_priority_scores(topic, input_data)
-            prioritized_topic = PrioritizedTopic(
-                original_topic=topic,
-                priority_rank=1,  # จะกำหนดใหม่หลังการเรียงลำดับ
-                priority_scores=priority_scores,
-                business_justification=self._generate_business_justification(
-                    topic, priority_scores
-                ),
-                production_notes=self._generate_production_notes(
-                    topic, priority_scores
-                ),
-            )
-            prioritized_topics.append(prioritized_topic)
-
-        # 2. เรียงลำดับตามคะแนนความสำคัญ
-        prioritized_topics.sort(
-            key=lambda x: x.priority_scores.priority_score, reverse=True
-        )
-
-        # 3. กำหนดอันดับใหม่
-        for i, prioritized_topic in enumerate(prioritized_topics, 1):
-            prioritized_topic.priority_rank = i
-
-        # 4. คำนวณ business alignment
-        business_alignment = self._calculate_business_alignment(
-            prioritized_topics, input_data.business_goals
-        )
-
-        # 5. สร้างคำแนะนำ
-        recommendations = self._generate_recommendations(prioritized_topics, input_data)
+        """ประมวลผลการสร้าง Content Calendar"""
 
         logger.info(
-            f"จัดลำดับความสำคัญเสร็จสิ้น - หัวข้ออันดับ 1: {prioritized_topics[0].original_topic.title}"
+            f"เริ่มสร้าง Content Calendar สำหรับ {len(input_data.candidate_topics)} หัวข้อ"
         )
 
-        return PriorityOutput(
-            prioritized_topics=prioritized_topics,
-            business_alignment=business_alignment,
-            recommendations=recommendations,
-        )
+        try:
+            # 1. คำนวณคะแนนความสำคัญและจำแนกประเภท
+            scored_topics = self._calculate_priority_scores(input_data)
+
+            # 2. จัดสรรหัวข้อในปฏิทิน
+            scheduled, unscheduled = self._assign_calendar(scored_topics, input_data)
+
+            # 3. คำนวณสถิติและตรวจสอบ
+            diversity_summary = self._calculate_diversity_summary(scheduled, input_data)
+            self_check = self._perform_self_check(scheduled, unscheduled, input_data)
+
+            # 4. สร้าง meta information
+            meta = self._create_meta_info(
+                input_data, scheduled, unscheduled, diversity_summary, self_check
+            )
+
+            result = PriorityOutput(
+                plan_generated_at=datetime.now().isoformat(),
+                strategy_focus=input_data.strategy_focus,
+                weeks_capacity={
+                    "longform_per_week": input_data.capacity.longform_per_week,
+                    "shorts_per_week": input_data.capacity.shorts_per_week,
+                },
+                scheduled=scheduled,
+                unscheduled=unscheduled,
+                diversity_summary=diversity_summary,
+                meta=meta,
+            )
+
+            logger.info(f"สร้าง Content Calendar เสร็จสิ้น - {len(scheduled)} หัวข้อในปฏิทิน")
+            return result
+
+        except Exception as e:
+            logger.error(f"เกิดข้อผิดพลาดในการสร้าง Content Calendar: {e}")
+            raise
 
     def _calculate_priority_scores(
-        self, topic, input_data: PriorityInput
-    ) -> PriorityScore:
-        """คำนวณคะแนนความสำคัญในแต่ละมิติ"""
+        self, input_data: PriorityInput
+    ) -> list[tuple[CandidateTopic, float, str, str]]:
+        """คำนวณคะแนนความสำคัญสำหรับแต่ละหัวข้อ"""
 
-        # จำลองการคำนวณคะแนน (ในระบบจริงจะใช้ข้อมูลและอัลกอริทึมที่ซับซ้อนกว่า)
-
-        # ROI Potential (พิจารณาจาก predicted views และ brand fit)
-        roi_potential = min(
-            100, (topic.predicted_14d_views / 1000) + topic.scores.brand_fit * 100
+        scored_topics = []
+        max_predicted_views = (
+            max(topic.predicted_14d_views for topic in input_data.candidate_topics)
+            if input_data.candidate_topics
+            else 1
         )
 
-        # Risk Level (คำนวณจาก risk_flags และ freshness)
-        risk_level = (
-            100 - len(topic.risk_flags) * 20 - (100 - topic.scores.freshness * 100)
-        )
-        risk_level = max(0, risk_level)
-
-        # Brand Alignment (ใช้คะแนน brand_fit จาก TrendScout)
-        brand_alignment = topic.scores.brand_fit * 100  # แปลงจาก 0-1 เป็น 0-100
-
-        # Production Difficulty (พิจารณาจาก pillar และความซับซ้อน)
-        difficulty_map = {
-            "ธรรมะประยุกต์": 80,  # ง่าย
-            "ธรรมะสั้น": 90,  # ง่ายที่สุด
-            "เจาะลึก/ซีรีส์": 30,  # ยาก
-            "สรุปพระสูตร/หนังสือ": 50,  # ปานกลาง
-        }
-        production_difficulty = difficulty_map.get(topic.pillar, 60)
-
-        # คำนวณคะแนนรวม
-        priority_score = (
-            roi_potential * self.weights["roi_potential"]
-            + risk_level * self.weights["risk_level"]
-            + brand_alignment * self.weights["brand_alignment"]
-            + production_difficulty * self.weights["production_difficulty"]
+        historical_context = input_data.historical_context
+        pillar_performance = (
+            historical_context.pillar_performance
+            if historical_context
+            else self.default_pillar_performance
         )
 
-        return PriorityScore(
-            roi_potential=roi_potential,
-            risk_level=risk_level,
-            brand_alignment=brand_alignment,
-            production_difficulty=production_difficulty,
-            priority_score=priority_score,
-        )
+        for topic in input_data.candidate_topics:
+            # คำนวณ base score
+            composite = topic.scores.get("composite", 0.5)
+            normalized_views = min(1.0, topic.predicted_14d_views / max_predicted_views)
+            base_score = composite * 70 + normalized_views * 30
 
-    def _generate_business_justification(
-        self, topic, priority_scores: PriorityScore
+            # ปรับตามกลยุทธ์
+            adjustments = 0.0
+            if input_data.strategy_focus == "fast_growth":
+                adjustments += topic.scores.get("freshness", 0.5) * 10
+                adjustments += topic.scores.get("search_intent", 0.5) * 5
+            elif input_data.strategy_focus == "evergreen_balance":
+                adjustments += topic.scores.get("evergreen", 0.5) * 8
+                adjustments += topic.scores.get("brand_fit", 0.5) * 4
+            elif input_data.strategy_focus == "depth_series":
+                adjustments += topic.scores.get("brand_fit", 0.5) * 8
+                adjustments += topic.scores.get("evergreen", 0.5) * 6
+                # Series bonus
+                if any(
+                    topic.title.startswith(prefix)
+                    for prefix in input_data.rules.force_series_prefixes
+                ):
+                    adjustments += 6
+
+            # ปรับตาม pillar performance
+            pillar_factor = pillar_performance.get(topic.pillar, 1.0)
+            final_score = (base_score + adjustments) * pillar_factor
+            final_score = max(0, min(100, final_score))  # Clip ให้อยู่ใน 0-100
+
+            # จำแนกประเภทเนื้อหา
+            content_type = self._classify_content_type(topic, input_data)
+
+            # กำหนดบทบาทที่คาดหวัง
+            expected_role = self._determine_expected_role(
+                topic, input_data.strategy_focus, final_score
+            )
+
+            scored_topics.append((topic, final_score, content_type, expected_role))
+
+        # เรียงลำดับตามคะแนน
+        scored_topics.sort(key=lambda x: x[1], reverse=True)
+
+        return scored_topics
+
+    def _classify_content_type(
+        self, topic: CandidateTopic, input_data: PriorityInput
     ) -> str:
-        """สร้างเหตุผลเชิงธุรกิจ"""
-        justifications = []
+        """จำแนกประเภทเนื้อหา (longform หรือ shorts)"""
 
-        if priority_scores.roi_potential > 80:
-            justifications.append("มีศักยภาพ ROI สูง")
-        if priority_scores.risk_level > 70:
-            justifications.append("ความเสี่ยงต่ำ")
-        if priority_scores.brand_alignment > 70:
-            justifications.append("สอดคล้องกับแบรนด์")
-        if priority_scores.production_difficulty > 70:
-            justifications.append("ผลิตได้ง่าย")
+        historical_context = input_data.historical_context
+        recent_longform_avg = (
+            historical_context.recent_longform_avg_views if historical_context else 3200
+        )
 
-        if not justifications:
-            justifications.append("เหมาะสมสำหรับการทดลอง")
+        # ตรวจสอบเงื่อนไข force_series_prefixes
+        if any(
+            topic.title.startswith(prefix)
+            for prefix in input_data.rules.force_series_prefixes
+        ):
+            return "longform"
 
-        return " | ".join(justifications)
+        # ตรวจสอบความลึกและยอดวิว
+        evergreen = topic.scores.get("evergreen", 0.5)
+        brand_fit = topic.scores.get("brand_fit", 0.5)
+        search_intent = topic.scores.get("search_intent", 0.5)
 
-    def _generate_production_notes(self, topic, priority_scores: PriorityScore) -> str:
-        """สร้างหมายเหตุการผลิต"""
+        if (
+            evergreen > 0.65 or brand_fit > 0.85
+        ) and topic.predicted_14d_views >= recent_longform_avg:
+            return "longform"
+        elif search_intent > 0.7 and evergreen < 0.55:
+            return "shorts"
+        else:
+            # Default decision based on predicted views
+            return (
+                "longform"
+                if topic.predicted_14d_views >= recent_longform_avg
+                else "shorts"
+            )
+
+    def _determine_expected_role(
+        self, topic: CandidateTopic, strategy: str, score: float
+    ) -> str:
+        """กำหนดบทบาทที่คาดหวัง"""
+
+        freshness = topic.scores.get("freshness", 0.5)
+        evergreen = topic.scores.get("evergreen", 0.5)
+
+        if strategy == "fast_growth" and freshness > 0.7:
+            return "traffic_spike"
+        elif evergreen > 0.7:
+            return "evergreen_seed"
+        elif any(
+            topic.title.startswith(prefix)
+            for prefix in ["พุทธจิตวิทยา", "ชาดกชุด", "10 วันภาวนา"]
+        ):
+            return "series_part"
+        elif score > 70:
+            return "audience_engagement"
+        else:
+            return "balance_filler"
+
+    def _assign_calendar(
+        self,
+        scored_topics: list[tuple[CandidateTopic, float, str, str]],
+        input_data: PriorityInput,
+    ) -> tuple[list[ScheduledTopic], list[UnscheduledTopic]]:
+        """จัดสรรหัวข้อในปฏิทิน"""
+
+        scheduled = []
+        unscheduled = []
+
+        # ข้อมูลการใช้งาน capacity
+        weeks_usage = {
+            f"W{i}": {"longform": 0, "shorts": 0}
+            for i in range(1, input_data.capacity.weeks + 1)
+        }
+
+        current_week = 1
+        slot_counters = {f"W{i}": 1 for i in range(1, input_data.capacity.weeks + 1)}
+
+        for topic, score, content_type, expected_role in scored_topics:
+            # ตรวจสอบคะแนนต่ำ
+            if score < 40:
+                unscheduled.append(
+                    UnscheduledTopic(
+                        topic_title=topic.title,
+                        reason="low_score",
+                        priority_score=score,
+                    )
+                )
+                continue
+
+            # หาสัปดาห์ที่มีที่ว่าง
+            week_assigned = None
+            for week in [
+                f"W{i}" for i in range(current_week, input_data.capacity.weeks + 1)
+            ]:
+                if content_type == "longform":
+                    if (
+                        weeks_usage[week]["longform"]
+                        < input_data.capacity.longform_per_week
+                    ):
+                        week_assigned = week
+                        weeks_usage[week]["longform"] += 1
+                        break
+                else:  # shorts
+                    if (
+                        weeks_usage[week]["shorts"]
+                        < input_data.capacity.shorts_per_week
+                    ):
+                        week_assigned = week
+                        weeks_usage[week]["shorts"] += 1
+                        break
+
+            # ลองหาจากสัปดาห์แรกอีกครั้ง
+            if not week_assigned:
+                for week in [f"W{i}" for i in range(1, current_week)]:
+                    if content_type == "longform":
+                        if (
+                            weeks_usage[week]["longform"]
+                            < input_data.capacity.longform_per_week
+                        ):
+                            week_assigned = week
+                            weeks_usage[week]["longform"] += 1
+                            break
+                    else:  # shorts
+                        if (
+                            weeks_usage[week]["shorts"]
+                            < input_data.capacity.shorts_per_week
+                        ):
+                            week_assigned = week
+                            weeks_usage[week]["shorts"] += 1
+                            break
+
+            if week_assigned:
+                # จัดกลุ่มซีรีส์
+                series_group = None
+                risk_flags = []
+
+                for prefix in input_data.rules.force_series_prefixes:
+                    if topic.title.startswith(prefix):
+                        series_group = prefix
+                        break
+
+                # สร้างหมายเหตุ
+                notes = self._generate_notes(
+                    topic, expected_role, input_data.strategy_focus
+                )
+
+                scheduled.append(
+                    ScheduledTopic(
+                        topic_title=topic.title,
+                        content_type=content_type,
+                        pillar=topic.pillar,
+                        week=week_assigned,
+                        slot_index=slot_counters[week_assigned],
+                        priority_score=score,
+                        expected_role=expected_role,
+                        series_group=series_group,
+                        risk_flags=risk_flags,
+                        notes=notes,
+                    )
+                )
+
+                slot_counters[week_assigned] += 1
+
+                # ปรับ current_week สำหรับรอบถัดไป
+                if current_week <= input_data.capacity.weeks:
+                    current_week = (current_week % input_data.capacity.weeks) + 1
+            else:
+                unscheduled.append(
+                    UnscheduledTopic(
+                        topic_title=topic.title,
+                        reason="capacity_full",
+                        priority_score=score,
+                    )
+                )
+
+        return scheduled, unscheduled
+
+    def _generate_notes(
+        self, topic: CandidateTopic, expected_role: str, strategy: str
+    ) -> str:
+        """สร้างหมายเหตุสำหรับหัวข้อ"""
+
         notes = []
 
-        if priority_scores.production_difficulty < 50:
-            notes.append("ต้องการการเตรียมตัวพิเศษ")
-        if len(topic.risk_flags) > 0:
-            notes.append(f"ระวัง: {', '.join(topic.risk_flags)}")
-        if topic.predicted_14d_views > 5000:
-            notes.append("คาดว่าจะได้รับความสนใจสูง")
+        if expected_role == "traffic_spike":
+            notes.append("คาดหวังยอดวิวสูง")
+        elif expected_role == "series_part":
+            notes.append("ส่วนหนึ่งของซีรีส์")
 
-        return " | ".join(notes) if notes else "ไม่มีหมายเหตุพิเศษ"
+        if strategy == "fast_growth":
+            freshness = topic.scores.get("freshness", 0.5)
+            if freshness > 0.8:
+                notes.append("สดใหม่สูง เหมาะเปิดเดือน")
 
-    def _calculate_business_alignment(
-        self,
-        prioritized_topics: list[PrioritizedTopic],
-        business_goals: dict[str, float],
-    ) -> dict[str, float]:
-        """คำนวณความสอดคล้องกับเป้าหมายธุรกิจ"""
+        if topic.predicted_14d_views > 10000:
+            notes.append("คาดการณ์ยอดวิวสูง")
 
-        # จำลองการคำนวณ business alignment
-        alignment = {}
+        return " | ".join(notes) if notes else "ปกติ"
 
-        top_3_topics = prioritized_topics[:3]
-        avg_brand_alignment = sum(
-            t.priority_scores.brand_alignment for t in top_3_topics
-        ) / len(top_3_topics)
-        avg_roi_potential = sum(
-            t.priority_scores.roi_potential for t in top_3_topics
-        ) / len(top_3_topics)
+    def _calculate_diversity_summary(
+        self, scheduled: list[ScheduledTopic], input_data: PriorityInput
+    ) -> DiversitySummary:
+        """คำนวณสรุปความหลากหลาย"""
 
-        alignment["brand_consistency"] = avg_brand_alignment / 100
-        alignment["revenue_potential"] = avg_roi_potential / 100
-        alignment["content_diversity"] = (
-            len({t.original_topic.pillar for t in top_3_topics}) / 4.0
+        pillar_counts = {}
+        for topic in scheduled:
+            pillar_counts[topic.pillar] = pillar_counts.get(topic.pillar, 0) + 1
+
+        distinct_pillars = len(pillar_counts)
+        meets_minimum = distinct_pillars >= input_data.rules.min_pillars_diversity
+
+        return DiversitySummary(
+            pillar_counts=pillar_counts,
+            distinct_pillars=distinct_pillars,
+            meets_minimum=meets_minimum,
         )
 
-        return alignment
+    def _perform_self_check(
+        self,
+        scheduled: list[ScheduledTopic],
+        unscheduled: list[UnscheduledTopic],
+        input_data: PriorityInput,
+    ) -> SelfCheck:
+        """ตรวจสอบผลลัพธ์ด้วยตัวเอง"""
 
+        # ตรวจสอบ capacity
+        weeks_usage = {}
+        for topic in scheduled:
+            if topic.week not in weeks_usage:
+                weeks_usage[topic.week] = {"longform": 0, "shorts": 0}
+            weeks_usage[topic.week][topic.content_type] += 1
+
+        capacity_respected = True
+        for _week, usage in weeks_usage.items():
+            if (
+                usage["longform"] > input_data.capacity.longform_per_week
+                or usage["shorts"] > input_data.capacity.shorts_per_week
+            ):
+                capacity_respected = False
+                break
+
+        # ตรวจสอบการเรียงลำดับคะแนน (อนุโลม)
+        longform_scores = [
+            t.priority_score for t in scheduled if t.content_type == "longform"
+        ]
+        shorts_scores = [
+            t.priority_score for t in scheduled if t.content_type == "shorts"
+        ]
+
+        scores_monotonic = True
+        if len(longform_scores) > 1:
+            scores_monotonic = scores_monotonic and all(
+                longform_scores[i] >= longform_scores[i + 1]
+                for i in range(len(longform_scores) - 1)
+            )
+        if len(shorts_scores) > 1:
+            scores_monotonic = scores_monotonic and all(
+                shorts_scores[i] >= shorts_scores[i + 1]
+                for i in range(len(shorts_scores) - 1)
+            )
+
+        # ตรวจสอบความหลากหลาย
+        pillars = {t.pillar for t in scheduled}
+        diversity_ok = len(pillars) >= input_data.rules.min_pillars_diversity
+
+        return SelfCheck(
+            capacity_respected=capacity_respected,
+            scores_monotonic=scores_monotonic,
+            diversity_ok=diversity_ok,
+        )
+
+    def _create_meta_info(
+        self,
+        input_data: PriorityInput,
+        scheduled: list[ScheduledTopic],
+        unscheduled: list[UnscheduledTopic],
+        diversity_summary: DiversitySummary,
+        self_check: SelfCheck,
+    ) -> MetaInfo:
+        """สร้างข้อมูล Meta"""
+
+        # หา pillar ที่มีสัดส่วนน้อย
+        all_pillars = {topic.pillar for topic in input_data.candidate_topics}
+        scheduled_pillars = {topic.pillar for topic in scheduled}
+        underrepresented = list(all_pillars - scheduled_pillars)
+
+        # สร้างหมายเหตุการปรับแต่ง
+        adjustments_notes = f"{input_data.strategy_focus} emphasis"
+        if input_data.strategy_focus == "fast_growth":
+            adjustments_notes += " -> freshness weighted"
+        elif input_data.strategy_focus == "evergreen_balance":
+            adjustments_notes += " -> balanced approach"
+        elif input_data.strategy_focus == "depth_series":
+            adjustments_notes += " -> series and depth prioritized"
+
+        return MetaInfo(
+            total_candidates=len(input_data.candidate_topics),
+            scheduled_count=len(scheduled),
+            unscheduled_count=len(unscheduled),
+            pillars_underrepresented=underrepresented,
+            adjustments_notes=adjustments_notes,
+            self_check=self_check,
+        )
+
+    # Legacy methods for backward compatibility
     def _generate_recommendations(
         self, prioritized_topics: list[PrioritizedTopic], input_data: PriorityInput
     ) -> list[str]:
-        """สร้างคำแนะนำสำหรับการผลิต"""
+        """สร้างคำแนะนำสำหรับการผลิต (Legacy)"""
 
         recommendations = []
 
