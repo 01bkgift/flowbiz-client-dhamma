@@ -37,9 +37,12 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install mkdocs mkdocs-material
 
       - name: Build documentation
