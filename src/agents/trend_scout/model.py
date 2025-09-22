@@ -165,7 +165,7 @@ class MetaInfo(BaseModel):
 
 class DiscardedDuplicate(BaseModel):
     """หัวข้อที่ถูกตัดออกเพราะซ้ำ"""
-    
+
     title: str = Field(description="ชื่อหัวข้อที่ถูกตัด")
     reason: str = Field(description="เหตุผลที่ถูกตัด")
 

@@ -102,7 +102,7 @@ def validate_result(file_path: str = "output/preflight_result.json") -> bool:
                 return False
 
             score = scores_obj[field]
-            if not isinstance(score, (int, float)):
+            if not isinstance(score, int | float):
                 print(f"❌ หัวข้อ #{i + 1} {field} ต้องเป็นตัวเลข")
                 return False
 

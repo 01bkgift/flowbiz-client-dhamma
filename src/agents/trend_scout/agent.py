@@ -22,7 +22,6 @@ from automation_core.utils.text import (
 )
 
 from .model import (
-    DiscardedDuplicate,
     MetaInfo,
     SelfCheck,
     TopicEntry,
@@ -64,7 +63,7 @@ class TrendScoutAgent(BaseAgent[TrendScoutInput, TrendScoutOutput]):
         self.content_pillars = [
             "ธรรมะประยุกต์",
             "ชาดก/นิทานสอนใจ",
-            "ธรรมะสั้น", 
+            "ธรรมะสั้น",
             "เจาะลึก/ซีรีส์",
             "Q&A/ตอบคำถาม",
             "สรุปพระสูตร/หนังสือ",

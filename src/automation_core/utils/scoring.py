@@ -121,7 +121,7 @@ def validate_score_range(
     """
 
     for score in scores.values():
-        if not isinstance(score, (int, float)):
+        if not isinstance(score, int | float):
             return False
         if score < min_val or score > max_val:
             return False
