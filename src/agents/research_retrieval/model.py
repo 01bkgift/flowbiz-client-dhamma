@@ -31,7 +31,7 @@ class ResearchRetrievalInput(BaseModel):
     def validate_max_passages(cls, v):
         if not 1 <= v <= 50:
             raise ValueError("max_passages ต้องอยู่ระหว่าง 1-50")
-    return v
+        return v
 
     @field_validator("topic_title", "raw_query")
     @classmethod
@@ -54,6 +54,7 @@ class QueryUsed(BaseModel):
         if v not in valid_types:
             raise ValueError(f"ประเภท query ต้องเป็นหนึ่งใน: {valid_types}")
         return v
+
 
 
 class Passage(BaseModel):
