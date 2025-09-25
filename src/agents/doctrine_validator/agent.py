@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import logging
+import math
 import re
+from collections import Counter
 from datetime import UTC, datetime
 
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+try:  # Optional dependency
+    from sentence_transformers import SentenceTransformer
+except ModuleNotFoundError:  # pragma: no cover - fallback path
+    SentenceTransformer = None  # type: ignore[assignment]
 
 from automation_core.base_agent import BaseAgent
 
@@ -50,6 +56,9 @@ class DoctrineValidatorAgent(
 
     @classmethod
     def _get_embedding_model(cls):
+        if SentenceTransformer is None:
+            return None
+
         if cls._embedding_model is None:
             cls._embedding_model = SentenceTransformer(
                 "paraphrase-multilingual-MiniLM-L12-v2"
@@ -234,6 +243,8 @@ class DoctrineValidatorAgent(
         notes: str | None = None
         status = SegmentStatus.OK
 
+        embedding_available = SentenceTransformer is not None
+
         if normalized_type == SegmentType.TEACHING and not citations:
             # ตรวจจับ hallucination ถ้าไม่มี citation และไม่ตรงกับ passages ใด ๆ
             best_similarity = 0.0
@@ -241,7 +252,7 @@ class DoctrineValidatorAgent(
                 similarity = self._compute_similarity(segment.text, passage)
                 if similarity > best_similarity:
                     best_similarity = similarity
-            if best_similarity < 0.6:
+            if best_similarity < 0.6 and embedding_available:
                 status = SegmentStatus.HALLUCINATION
                 notes = f"ไม่พบใจความใน passages (similarity_max={best_similarity:.2f})"
             else:
@@ -254,7 +265,7 @@ class DoctrineValidatorAgent(
                 similarity = self._compute_similarity(segment.text, passage)
                 if similarity > best_similarity:
                     best_similarity = similarity
-            if best_similarity < 0.6:
+            if best_similarity < 0.6 and embedding_available:
                 status = SegmentStatus.HALLUCINATION
                 notes = f"ไม่พบใจความใน passages (similarity_max={best_similarity:.2f})"
             else:
@@ -371,16 +382,57 @@ class DoctrineValidatorAgent(
         sentence_clean = self._normalize(sentence)
         if not sentence_clean:
             return 0.0
-        sentence_emb = model.encode([sentence_clean])
+
         best_score = 0.0
+        if model is None:
+            for target in target_texts:
+                target_clean = self._normalize(target)
+                if not target_clean:
+                    continue
+                score = self._lexical_similarity(sentence_clean, target_clean)
+                best_score = max(best_score, score)
+            return best_score
+
+        sentence_emb = np.array(model.encode([sentence_clean])[0])
         for target in target_texts:
             target_clean = self._normalize(target)
             if not target_clean:
                 continue
-            target_emb = model.encode([target_clean])
-            score = cosine_similarity(sentence_emb, target_emb)[0][0]
+            target_emb = np.array(model.encode([target_clean])[0])
+            score = self._cosine(sentence_emb, target_emb)
             best_score = max(best_score, score)
         return float(best_score)
+
+    def _lexical_similarity(self, source: str, target: str) -> float:
+        """Compute cosine similarity based on token frequency."""
+
+        source_counter = Counter(source.split())
+        target_counter = Counter(target.split())
+        if not source_counter or not target_counter:
+            return 0.0
+
+        intersection = set(source_counter) & set(target_counter)
+        numerator = sum(
+            source_counter[token] * target_counter[token] for token in intersection
+        )
+        source_norm = math.sqrt(
+            sum(value * value for value in source_counter.values())
+        )
+        target_norm = math.sqrt(
+            sum(value * value for value in target_counter.values())
+        )
+        if source_norm == 0 or target_norm == 0:
+            return 0.0
+        return numerator / (source_norm * target_norm)
+
+    @staticmethod
+    def _cosine(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+        """Compute cosine similarity between two vectors."""
+
+        denom = np.linalg.norm(vec_a) * np.linalg.norm(vec_b)
+        if denom == 0:
+            return 0.0
+        return float(np.dot(vec_a, vec_b) / denom)
 
     def _normalize(self, text: str) -> str:
         cleaned = CITATION_PATTERN.sub("", text)
