@@ -6,8 +6,6 @@ Test cases สำหรับ ScriptWriterAgent
 import sys
 from pathlib import Path
 
-import pytest
-
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -46,7 +44,7 @@ class TestScriptWriterAgent:
     def create_sample_outline(self) -> ScriptOutlineOutput:
         """สร้าง sample outline สำหรับทดสอบ"""
         outline_agent = ScriptOutlineAgent()
-        
+
         input_data = ScriptOutlineInput(
             topic_title="ปล่อยวางความกังวลก่อนนอน",
             summary_bullets=[
@@ -58,18 +56,16 @@ class TestScriptWriterAgent:
             viewer_persona=ViewerPersona(
                 name="คนทำงานเมือง",
                 pain_points=["เครียดจากการทำงาน", "นอนไม่หลับ"],
-                desired_state="ใจสงบ นอนหลับสนิท"
+                desired_state="ใจสงบ นอนหลับสนิท",
             ),
             style_preferences=StylePreferences(
-                tone="อบอุ่น สงบ ไม่สั่งสอน",
-                avoid=["ศัพท์บาลีหนักเกินไป", "การตำหนิตัวผู้ชม"]
+                tone="อบอุ่น สงบ ไม่สั่งสอน", avoid=["ศัพท์บาลีหนักเกินไป", "การตำหนิตัวผู้ชม"]
             ),
             retention_goals=RetentionGoals(
-                hook_drop_max_pct=30,
-                mid_segment_break_every_sec=120
+                hook_drop_max_pct=30, mid_segment_break_every_sec=120
             ),
         )
-        
+
         return outline_agent.run(input_data)
 
     def create_sample_passages(self) -> PassageData:
@@ -85,10 +81,10 @@ class TestScriptWriterAgent:
                 relevance_final=0.9,
                 doctrinal_tags=["สติ", "สมาธิ"],
                 license="public_domain",
-                reason="เกี่ยวข้องกับการฝึกสติ"
+                reason="เกี่ยวข้องกับการฝึกสติ",
             ),
             Passage(
-                id="p210", 
+                id="p210",
                 source_name="อานาปานสติสูตร",
                 collection="พระสุตตันตปิฎก",
                 canonical_ref="MN 118",
@@ -96,11 +92,11 @@ class TestScriptWriterAgent:
                 thai_modernized="การสติดูลมหายใจที่พัฒนาแล้วจะทำให้ใจสงบ",
                 relevance_final=0.85,
                 doctrinal_tags=["อานาปานสติ", "สมาธิ"],
-                license="public_domain", 
-                reason="เกี่ยวข้องกับการหายใจและความสงบ"
-            )
+                license="public_domain",
+                reason="เกี่ยวข้องกับการหายใจและความสงบ",
+            ),
         ]
-        
+
         supportive_passages = [
             Passage(
                 id="p300",
@@ -112,31 +108,31 @@ class TestScriptWriterAgent:
                 relevance_final=0.7,
                 doctrinal_tags=["เวทนา", "วิปัสสนา"],
                 license="public_domain",
-                reason="อธิบายการสังเกตเวทนา"
+                reason="อธิบายการสังเกตเวทนา",
             )
         ]
-        
+
         return PassageData(primary=primary_passages, supportive=supportive_passages)
 
     def test_run_basic_functionality(self):
         """ทดสอบการทำงานพื้นฐานของ agent"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
             style_notes=StyleNotes(
                 tone="อบอุ่น สงบ ไม่สั่งสอน",
                 voice="เป็นกันเอง สุภาพ ใช้คำว่า เรา/คุณ",
-                avoid=["ศัพท์บาลีติดกันหลายคำ", "การชี้นำผลลัพธ์แน่นอน"]
+                avoid=["ศัพท์บาลีติดกันหลายคำ", "การชี้นำผลลัพธ์แน่นอน"],
             ),
             target_seconds=600,
-            language="th"
+            language="th",
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ตรวจสอบโครงสร้างพื้นฐาน
         assert isinstance(result, ScriptWriterOutput)
         assert result.topic == outline.topic
@@ -147,25 +143,21 @@ class TestScriptWriterAgent:
         """ทดสอบโครงสร้างของ segments"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น สงบ",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น สงบ", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ตรวจสอบว่ามี segment types ที่จำเป็น
         segment_types = [s.segment_type for s in result.segments]
         assert SegmentType.HOOK in segment_types
         assert SegmentType.TEACHING in segment_types
-        
+
         # ตรวจสอบว่าแต่ละ segment มีข้อมูลครบ
         for segment in result.segments:
             assert segment.text.strip() != ""
@@ -176,24 +168,22 @@ class TestScriptWriterAgent:
         """ทดสอบข้อกำหนดของ Hook segment"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง", 
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # หา Hook segments
-        hook_segments = [s for s in result.segments if s.segment_type == SegmentType.HOOK]
+        hook_segments = [
+            s for s in result.segments if s.segment_type == SegmentType.HOOK
+        ]
         assert len(hook_segments) > 0
-        
+
         # ตรวจสอบ Hook ไม่เกิน 8 วินาที
         for hook in hook_segments:
             assert hook.est_seconds <= 8
@@ -202,56 +192,50 @@ class TestScriptWriterAgent:
         """ทดสอบว่า teaching segments มี citations"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # หา Teaching segments
-        teaching_segments = [s for s in result.segments if s.segment_type == SegmentType.TEACHING]
-        
+        teaching_segments = [
+            s for s in result.segments if s.segment_type == SegmentType.TEACHING
+        ]
+
         # อย่างน้อยต้องมี 1 teaching segment ที่มี citation
         has_citation = False
         for segment in teaching_segments:
             if "[CIT:" in segment.text:
                 has_citation = True
                 break
-        
+
         assert has_citation, "Teaching segments ควรมี citations"
 
     def test_citations_validation(self):
         """ทดสอบการตรวจสอบ citations"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ตรวจสอบว่า citations ที่ใช้มีอยู่ใน passages
         passage_ids = [p.id for p in passages.primary + passages.supportive]
-        
+
         for citation_id in result.citations_used:
             assert citation_id in passage_ids, f"Citation {citation_id} ไม่มีใน passages"
-        
+
         # ตรวจสอบว่า unmatched_citations ควรเป็นค่าว่าง
         assert len(result.unmatched_citations) == 0
 
@@ -259,28 +243,25 @@ class TestScriptWriterAgent:
         """ทดสอบการเพิ่ม retention cues"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ตรวจสอบว่ามี retention cues
         total_cues = 0
         for segment in result.segments:
             # นับจำนวน retention cues (ในวงเล็บ)
             import re
-            cues = re.findall(r'\([^)]+\)', segment.text)
+
+            cues = re.findall(r"\([^)]+\)", segment.text)
             total_cues += len(cues)
-        
+
         assert total_cues > 0, "ควรมี retention cues"
         assert result.meta.interrupts_count == total_cues
 
@@ -288,96 +269,86 @@ class TestScriptWriterAgent:
         """ทดสอบการควบคุมระยะเวลา"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         target_seconds = 600
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=target_seconds
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=target_seconds,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ตรวจสอบระยะเวลารวม
         tolerance = target_seconds * 0.15  # ±15%
-        assert abs(result.duration_est_total - target_seconds) <= tolerance * 2  # ยอมรับความคลาดเคลื่อนสูงในการทดสอบ
+        assert (
+            abs(result.duration_est_total - target_seconds) <= tolerance * 2
+        )  # ยอมรับความคลาดเคลื่อนสูงในการทดสอบ
 
     def test_quality_check_completeness(self):
         """ทดสอบความสมบูรณ์ของ quality check"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ตรวจสอบว่ามี quality check ครบถ้วน
         qc = result.quality_check
-        assert hasattr(qc, 'citations_valid')
-        assert hasattr(qc, 'teaching_has_citation')
-        assert hasattr(qc, 'duration_within_range')
-        assert hasattr(qc, 'hook_within_8s')
-        assert hasattr(qc, 'no_prohibited_claims')
+        assert hasattr(qc, "citations_valid")
+        assert hasattr(qc, "teaching_has_citation")
+        assert hasattr(qc, "duration_within_range")
+        assert hasattr(qc, "hook_within_8s")
+        assert hasattr(qc, "no_prohibited_claims")
 
     def test_meta_info_accuracy(self):
         """ทดสอบความถูกต้องของ meta info"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         meta = result.meta
-        
+
         # ตรวจสอบ reading speed อยู่ในช่วงที่เหมาะสม
         assert 100 <= meta.reading_speed_wpm <= 200
-        
+
         # ตรวจสอบจำนวน teaching segments
-        actual_teaching_segments = len([s for s in result.segments if s.segment_type == SegmentType.TEACHING])
+        actual_teaching_segments = len(
+            [s for s in result.segments if s.segment_type == SegmentType.TEACHING]
+        )
         assert meta.teaching_segments == actual_teaching_segments
 
     def test_prohibited_claims_detection(self):
         """ทดสอบการตรวจจับคำที่ห้ามใช้"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
             style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=["การยืนยันผลลัพธ์แน่นอน"]
+                tone="อบอุ่น", voice="เป็นกันเอง", avoid=["การยืนยันผลลัพธ์แน่นอน"]
             ),
-            target_seconds=600
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ตรวจสอบว่าไม่มีคำต้องห้าม
         prohibited_found = False
         for segment in result.segments:
@@ -385,61 +356,57 @@ class TestScriptWriterAgent:
                 if claim in segment.text:
                     prohibited_found = True
                     break
-        
+
         # Quality check ควรสะท้อนการตรวจสอบนี้
         assert result.quality_check.no_prohibited_claims == (not prohibited_found)
 
     def test_input_validation(self):
         """ทดสอบการตรวจสอบข้อมูลนำเข้า"""
         outline = self.create_sample_outline()
-        
+
         # ทดสอบกรณีไม่มี passages
         input_data = ScriptWriterInput(
             outline=outline,
             passages=PassageData(primary=[], supportive=[]),
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ควรได้ warning หรือ error
-        assert len(result.warnings) > 0
+        assert result.warnings, "Expected warnings when no passages are provided"
+        assert any(
+            "passage" in warning.lower() or "ไม่พบ" in warning
+            for warning in result.warnings
+        ), "Warnings should mention missing passages"
 
     def test_different_target_durations(self):
         """ทดสอบการปรับตัวตามระยะเวลาเป้าหมายที่แตกต่าง"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
-        style_notes = StyleNotes(
-            tone="อบอุ่น",
-            voice="เป็นกันเอง",
-            avoid=[]
-        )
-        
+
+        style_notes = StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[])
+
         # ทดสอบเป้าหมาย 8 นาที
         input_short = ScriptWriterInput(
             outline=outline,
             passages=passages,
             style_notes=style_notes,
-            target_seconds=480
+            target_seconds=480,
         )
-        
+
         # ทดสอบเป้าหมาย 12 นาที
         input_long = ScriptWriterInput(
             outline=outline,
             passages=passages,
             style_notes=style_notes,
-            target_seconds=720
+            target_seconds=720,
         )
-        
+
         result_short = self.agent.run(input_short)
         result_long = self.agent.run(input_long)
-        
+
         # สคริปต์ยาวควรมีระยะเวลานานกว่า
         assert result_long.duration_est_total > result_short.duration_est_total
 
@@ -447,20 +414,16 @@ class TestScriptWriterAgent:
         """ทดสอบการสร้างคำเตือน"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=300  # เป้าหมายสั้นมาก เพื่อให้เกิด warning
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=300,  # เป้าหมายสั้นมาก เพื่อให้เกิด warning
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         # ควรมี warnings เนื่องจากเป้าหมายเวลาสั้น
         assert isinstance(result.warnings, list)
 
@@ -468,25 +431,24 @@ class TestScriptWriterAgent:
         """ทดสอบว่าครอบคลุม segment types ที่สำคัญ"""
         outline = self.create_sample_outline()
         passages = self.create_sample_passages()
-        
+
         input_data = ScriptWriterInput(
             outline=outline,
             passages=passages,
-            style_notes=StyleNotes(
-                tone="อบอุ่น",
-                voice="เป็นกันเอง",
-                avoid=[]
-            ),
-            target_seconds=600
+            style_notes=StyleNotes(tone="อบอุ่น", voice="เป็นกันเอง", avoid=[]),
+            target_seconds=600,
         )
-        
+
         result = self.agent.run(input_data)
-        
+
         segment_types = [s.segment_type for s in result.segments]
-        
+
         # ตรวจสอบว่ามี segment types ที่หลากหลาย
         assert len(set(segment_types)) >= 3  # อย่างน้อย 3 ประเภท
-        
+
         # Hook และ Closing ควรมี
         assert SegmentType.HOOK in segment_types
-        assert SegmentType.CLOSING in segment_types or SegmentType.TEACHING in segment_types
+        assert (
+            SegmentType.CLOSING in segment_types
+            or SegmentType.TEACHING in segment_types
+        )
