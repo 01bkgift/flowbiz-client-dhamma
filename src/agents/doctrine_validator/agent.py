@@ -94,9 +94,7 @@ class DoctrineValidatorAgent(
                 )
 
                 if segment_result.status == SegmentStatus.MISSING_CITATION:
-                    global_warnings.append(
-                        f"segment {index} มีเนื้อหาสอนแต่ไม่มี citation"
-                    )
+                    global_warnings.append(f"segment {index} มีเนื้อหาสอนแต่ไม่มี citation")
                 if segment_result.status == SegmentStatus.UNVERIFIABLE:
                     global_warnings.append(
                         f"segment {index} ไม่สามารถตรวจสอบกับ passages ได้"
@@ -106,9 +104,7 @@ class DoctrineValidatorAgent(
                         f"segment {index} มีเนื้อหาไม่ตรงกับ passages ที่อ้าง"
                     )
                 if segment_result.status == SegmentStatus.HALLUCINATION:
-                    global_warnings.append(
-                        f"segment {index} มีใจความที่ไม่พบใน passages"
-                    )
+                    global_warnings.append(f"segment {index} มีใจความที่ไม่พบใน passages")
 
                 unmatched_citation_count += sum(
                     1 for warn in segment_result.warnings if "ไม่พบ" in warn
@@ -122,7 +118,10 @@ class DoctrineValidatorAgent(
                         )
                     )
 
-                if segment_result.matched_passages and normalized_type == SegmentType.TEACHING:
+                if (
+                    segment_result.matched_passages
+                    and normalized_type == SegmentType.TEACHING
+                ):
                     teaching_with_citation += 1
 
                 processed_segments.append(segment_result)
@@ -176,16 +175,16 @@ class DoctrineValidatorAgent(
                     self_check=SelfCheck(
                         ok_ratio=round(ok_ratio, 2),
                         no_unmatched_citation=unmatched_citation_count == 0,
-                        no_missing_citation=
-                            summary_counter[SegmentStatus.MISSING_CITATION] == 0,
+                        no_missing_citation=summary_counter[
+                            SegmentStatus.MISSING_CITATION
+                        ]
+                        == 0,
                     ),
                 ),
                 warnings=global_warnings,
             )
 
-            logger.info(
-                "ตรวจสอบสคริปต์เสร็จสิ้น %s segments", output.summary.total
-            )
+            logger.info("ตรวจสอบสคริปต์เสร็จสิ้น %s segments", output.summary.total)
             return output
         except Exception as exc:  # pragma: no cover - unexpected error path
             logger.exception("เกิดข้อผิดพลาดระหว่างการตรวจสอบ")
@@ -233,7 +232,9 @@ class DoctrineValidatorAgent(
         # Sensitive phrase detection
         if check_sensitive:
             lowered = segment.text.lower()
-            flagged = [phrase for phrase in SENSITIVE_PHRASES if phrase.lower() in lowered]
+            flagged = [
+                phrase for phrase in SENSITIVE_PHRASES if phrase.lower() in lowered
+            ]
             for phrase in flagged:
                 warnings.append(f"พบถ้อยคำสุ่มเสี่ยง: '{phrase}'")
 
@@ -245,7 +246,11 @@ class DoctrineValidatorAgent(
                 status = SegmentStatus.UNVERIFIABLE
                 continue
 
-            if strictness == "strict" and passage.license and passage.license != "public_domain":
+            if (
+                strictness == "strict"
+                and passage.license
+                and passage.license != "public_domain"
+            ):
                 warnings.append(
                     f"Citation ID '{cit}' มี license '{passage.license}' ไม่ใช่ public_domain"
                 )
@@ -274,7 +279,10 @@ class DoctrineValidatorAgent(
             avg_similarity = sum(similarity_records) / len(similarity_records)
             notes = f"similarity_avg={avg_similarity:.2f}"
 
-        if status == SegmentStatus.UNVERIFIABLE and normalized_type == SegmentType.TEACHING:
+        if (
+            status == SegmentStatus.UNVERIFIABLE
+            and normalized_type == SegmentType.TEACHING
+        ):
             suggestions = "ตรวจสอบว่ามีการอ้างอิง passages ที่ถูกต้อง"
 
         return SegmentValidation(

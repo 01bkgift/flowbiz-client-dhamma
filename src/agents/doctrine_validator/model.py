@@ -61,13 +61,9 @@ class Passage(BaseModel):
 
     id: str = Field(description="รหัสอ้างอิง")
     original_text: str = Field(description="ข้อความต้นฉบับ")
-    thai_modernized: str | None = Field(
-        default=None, description="คำแปลไทยร่วมสมัย"
-    )
+    thai_modernized: str | None = Field(default=None, description="คำแปลไทยร่วมสมัย")
     doctrinal_tags: list[str] = Field(default_factory=list, description="แท็กหลักธรรม")
-    canonical_ref: str | None = Field(
-        default=None, description="เลขอ้างอิงในพระไตรปิฎก"
-    )
+    canonical_ref: str | None = Field(default=None, description="เลขอ้างอิงในพระไตรปิฎก")
     license: str | None = Field(default=None, description="สถานะลิขสิทธิ์")
 
 
@@ -91,9 +87,7 @@ class Passages(BaseModel):
 class DoctrineValidatorInput(BaseModel):
     """Input สำหรับ DoctrineValidatorAgent"""
 
-    script_segments: list[ScriptSegment] = Field(
-        description="รายการ segment ของสคริปต์"
-    )
+    script_segments: list[ScriptSegment] = Field(description="รายการ segment ของสคริปต์")
     passages: Passages = Field(description="ข้อความอ้างอิง")
     strictness: Literal["normal", "strict"] = Field(
         default="normal", description="ระดับความเข้มงวด"
@@ -101,9 +95,7 @@ class DoctrineValidatorInput(BaseModel):
     ignore_segments: list[int] = Field(
         default_factory=list, description="ดัชนี segment ที่ข้ามการตรวจ"
     )
-    check_sensitive: bool = Field(
-        default=False, description="ตรวจคำที่สุ่มเสี่ยงหรือไม่"
-    )
+    check_sensitive: bool = Field(default=False, description="ตรวจคำที่สุ่มเสี่ยงหรือไม่")
 
     @field_validator("script_segments")
     @classmethod
