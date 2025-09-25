@@ -1,5 +1,6 @@
 """Tests for the localization subtitle agent."""
 
+import re
 import sys
 from pathlib import Path
 
