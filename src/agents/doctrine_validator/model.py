@@ -78,6 +78,7 @@ class Passages(BaseModel):
                 f"Passage IDs must be unique across primary and supportive lists. Duplicates found: {intersecting_ids}"
             )
         return self
+
     """ชุดข้อความอ้างอิงหลักและเสริม"""
 
     primary: list[Passage] = Field(default_factory=list, description="primary passages")
