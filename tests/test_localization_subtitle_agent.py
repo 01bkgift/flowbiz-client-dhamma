@@ -87,7 +87,7 @@ class TestLocalizationSubtitleAgent:
         assert output.meta.self_check is True
 
         # Summary should respect length requirements
-        summary_words = output.english_summary.split()
+        summary_words = [w for w in re.split(r'\s+', output.english_summary.strip()) if w]
         assert 50 <= len(summary_words) <= 100
         assert output.warnings == []
 
