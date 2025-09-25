@@ -360,4 +360,8 @@ class TestResearchRetrievalAgent:
             # ถ้าได้ ResearchRetrievalOutput ควรมี confidence ต่ำ
             assert isinstance(result, ResearchRetrievalOutput)
             assert result.coverage_assessment.confidence < 0.5  # ความมั่นใจต่ำ
-            assert len(result.warnings) > 0  # ควรมี warnings
+            assert result.warnings, "Expected warnings when no passages are found"
+            expected_warning_keys = {"insufficient_passages", "no_primary_passages"}
+            assert expected_warning_keys.intersection(set(result.warnings)), (
+                "Warnings should include insufficient passages information"
+            )

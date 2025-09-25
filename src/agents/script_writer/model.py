@@ -105,8 +105,7 @@ class ScriptWriterOutput(BaseModel):
     segments: list[ScriptSegment] = Field(description="ส่วนต่างๆ ของสคริปต์")
     citations_used: list[str] = Field(description="รายการ passage IDs ที่ใช้")
     unmatched_citations: list[str] = Field(
-        default_factory=list,
-        description="Citations ที่ไม่พบใน passages (ควรเป็นค่าว่าง)"
+        default_factory=list, description="Citations ที่ไม่พบใน passages (ควรเป็นค่าว่าง)"
     )
     duration_est_total: int = Field(description="เวลารวมประมาณการ (วินาที)")
     meta: ScriptMeta = Field(description="ข้อมูล metadata")
