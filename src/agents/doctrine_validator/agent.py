@@ -5,7 +5,9 @@ from __future__ import annotations
 import logging
 import re
 from datetime import UTC, datetime
-from difflib import SequenceMatcher
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 from automation_core.base_agent import BaseAgent
 
@@ -40,6 +42,13 @@ SENSITIVE_PHRASES = [
 
 
 class DoctrineValidatorAgent(
+    _embedding_model = None
+
+    @classmethod
+    def _get_embedding_model(cls):
+        if cls._embedding_model is None:
+            cls._embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+        return cls._embedding_model
     BaseAgent[DoctrineValidatorInput, DoctrineValidatorOutput | ErrorResponse]
 ):
     """Agent สำหรับตรวจสอบความถูกต้องของสคริปต์ตามหลักธรรม"""
@@ -223,11 +232,31 @@ class DoctrineValidatorAgent(
         status = SegmentStatus.OK
 
         if normalized_type == SegmentType.TEACHING and not citations:
-            status = SegmentStatus.MISSING_CITATION
-            suggestions = "เพิ่ม citation ให้กับใจความสอนหลัก"
+            # ตรวจจับ hallucination ถ้าไม่มี citation และไม่ตรงกับ passages ใด ๆ
+            best_similarity = 0.0
+            for passage in passage_map.values():
+                similarity = self._compute_similarity(segment.text, passage)
+                if similarity > best_similarity:
+                    best_similarity = similarity
+            if best_similarity < 0.6:
+                status = SegmentStatus.HALLUCINATION
+                notes = f"ไม่พบใจความใน passages (similarity_max={best_similarity:.2f})"
+            else:
+                status = SegmentStatus.MISSING_CITATION
+                suggestions = "เพิ่ม citation ให้กับใจความสอนหลัก"
         elif not citations:
-            status = SegmentStatus.UNVERIFIABLE
-            notes = "ไม่มี citation ให้ตรวจสอบ"
+            # ตรวจจับ hallucination สำหรับประเภทอื่น ๆ เช่นกัน
+            best_similarity = 0.0
+            for passage in passage_map.values():
+                similarity = self._compute_similarity(segment.text, passage)
+                if similarity > best_similarity:
+                    best_similarity = similarity
+            if best_similarity < 0.6:
+                status = SegmentStatus.HALLUCINATION
+                notes = f"ไม่พบใจความใน passages (similarity_max={best_similarity:.2f})"
+            else:
+                status = SegmentStatus.UNVERIFIABLE
+                notes = "ไม่มี citation ให้ตรวจสอบ"
 
         # Sensitive phrase detection
         if check_sensitive:
@@ -334,15 +363,20 @@ class DoctrineValidatorAgent(
         if passage.thai_modernized:
             target_texts.append(passage.thai_modernized)
 
+        model = self._get_embedding_model()
         sentence_clean = self._normalize(sentence)
+        if not sentence_clean:
+            return 0.0
+        sentence_emb = model.encode([sentence_clean])
         best_score = 0.0
         for target in target_texts:
             target_clean = self._normalize(target)
             if not target_clean:
                 continue
-            score = SequenceMatcher(None, sentence_clean, target_clean).ratio()
+            target_emb = model.encode([target_clean])
+            score = cosine_similarity(sentence_emb, target_emb)[0][0]
             best_score = max(best_score, score)
-        return best_score
+        return float(best_score)
 
     def _normalize(self, text: str) -> str:
         cleaned = CITATION_PATTERN.sub("", text)

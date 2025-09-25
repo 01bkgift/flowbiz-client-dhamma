@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class SegmentStatus(StrEnum):
@@ -68,6 +68,16 @@ class Passage(BaseModel):
 
 
 class Passages(BaseModel):
+    @model_validator(mode="after")
+    def ensure_unique_ids_across_lists(self) -> "Passages":
+        primary_ids = {p.id for p in self.primary}
+        supportive_ids = {p.id for p in self.supportive}
+        intersecting_ids = primary_ids.intersection(supportive_ids)
+        if intersecting_ids:
+            raise ValueError(
+                f"Passage IDs must be unique across primary and supportive lists. Duplicates found: {intersecting_ids}"
+            )
+        return self
     """ชุดข้อความอ้างอิงหลักและเสริม"""
 
     primary: list[Passage] = Field(default_factory=list, description="primary passages")
