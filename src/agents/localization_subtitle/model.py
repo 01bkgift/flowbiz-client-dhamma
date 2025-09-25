@@ -130,7 +130,7 @@ class LocalizationSubtitleOutput(BaseModel):
         return " ".join(words)
 
     @model_validator(mode="after")
-    def validate_structure(self) -> "LocalizationSubtitleOutput":
+    def validate_structure(self) -> LocalizationSubtitleOutput:
         blocks = [
             block.strip()
             for block in re.split(r"\n\s*\n", self.srt.strip())

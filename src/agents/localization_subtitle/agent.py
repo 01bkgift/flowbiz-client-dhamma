@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import re
 import textwrap
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable, Protocol
+from typing import Any, Protocol
 
 from automation_core.base_agent import BaseAgent
 from automation_core.prompt_loader import get_prompt_path, load_prompt
