@@ -318,14 +318,14 @@ class DoctrineValidatorAgent(
 
     def _find_sentence_start(self, text: str, index: int) -> int:
         for pos in range(index, 0, -1):
-            if text[pos - 1] in ".!?\n\u0e2f\u0e46\u0e4c":
+            if text[pos - 1] in ".!?\n\u0e2f":
                 return pos
         return 0
 
     def _find_sentence_end(self, text: str, index: int) -> int:
         length = len(text)
         for pos in range(index, length):
-            if text[pos] in ".!?\n\u0e2f\u0e46\u0e4c":
+            if text[pos] in ".!?\n\u0e2f":
                 return pos + 1
         return length
 
