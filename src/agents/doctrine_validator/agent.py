@@ -252,9 +252,12 @@ class DoctrineValidatorAgent(
                 similarity = self._compute_similarity(segment.text, passage)
                 if similarity > best_similarity:
                     best_similarity = similarity
-            if best_similarity < 0.6 and embedding_available:
+            if best_similarity < 0.6:
                 status = SegmentStatus.HALLUCINATION
-                notes = f"ไม่พบใจความใน passages (similarity_max={best_similarity:.2f})"
+                detail = "ไม่พบใจความใน passages"
+                if not embedding_available:
+                    detail += " (ใช้การเทียบคำแบบพื้นฐาน)"
+                notes = f"{detail} (similarity_max={best_similarity:.2f})"
             else:
                 status = SegmentStatus.MISSING_CITATION
                 suggestions = "เพิ่ม citation ให้กับใจความสอนหลัก"
