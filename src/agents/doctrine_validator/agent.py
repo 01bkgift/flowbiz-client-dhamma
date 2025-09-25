@@ -337,7 +337,8 @@ class DoctrineValidatorAgent(
     def _extract_sentence_with_citation(self, text: str, citation_id: str) -> str:
         matches = list(CITATION_PATTERN.finditer(text))
         for match in matches:
-            if citation_id in match.group(1).split(","):
+            tokens = [token.strip() for token in match.group(1).split(",")]
+            if citation_id in tokens:
                 start = match.start()
                 end = match.end()
                 sentence_start = self._find_sentence_start(text, start)
