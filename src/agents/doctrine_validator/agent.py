@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 import re
 from datetime import UTC, datetime
+
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
 from automation_core.base_agent import BaseAgent
 
@@ -42,16 +42,19 @@ SENSITIVE_PHRASES = [
 
 
 class DoctrineValidatorAgent(
+    BaseAgent[DoctrineValidatorInput, DoctrineValidatorOutput | ErrorResponse]
+):
+    """Agent สำหรับตรวจสอบความถูกต้องของสคริปต์ตามหลักธรรม"""
+
     _embedding_model = None
 
     @classmethod
     def _get_embedding_model(cls):
         if cls._embedding_model is None:
-            cls._embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+            cls._embedding_model = SentenceTransformer(
+                "paraphrase-multilingual-MiniLM-L12-v2"
+            )
         return cls._embedding_model
-    BaseAgent[DoctrineValidatorInput, DoctrineValidatorOutput | ErrorResponse]
-):
-    """Agent สำหรับตรวจสอบความถูกต้องของสคริปต์ตามหลักธรรม"""
 
     def __init__(self) -> None:
         super().__init__(

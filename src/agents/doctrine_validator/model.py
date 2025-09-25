@@ -69,7 +69,7 @@ class Passage(BaseModel):
 
 class Passages(BaseModel):
     @model_validator(mode="after")
-    def ensure_unique_ids_across_lists(self) -> "Passages":
+    def ensure_unique_ids_across_lists(self) -> Passages:
         primary_ids = {p.id for p in self.primary}
         supportive_ids = {p.id for p in self.supportive}
         intersecting_ids = primary_ids.intersection(supportive_ids)
