@@ -1,14 +1,10 @@
-"""
-agents - โมดูลรวม AI Agents ทั้งหมด
+"""agents - โมดูลรวม AI Agents ทั้งหมด"""
 
-ปัจจุบันมี:
-- TrendScoutAgent: วิเคราะห์เทรนด์และสร้างหัวข้อคอนเทนต์
-- TopicPrioritizerAgent: จัดลำดับความสำคัญของหัวข้อ
-- ResearchRetrievalAgent: ค้นหาและดึงข้อความอ้างอิงจากคลังธรรมะ
-- ScriptOutlineAgent: สร้างโครงร่างวิดีโอ Long-form
-- ScriptWriterAgent: เรียบเรียงสคริปต์วิดีโอจากโครงร่างและข้อความอ้างอิง
-"""
-
+from .doctrine_validator import (
+    DoctrineValidatorAgent,
+    DoctrineValidatorInput,
+    DoctrineValidatorOutput,
+)
 from .research_retrieval.agent import ResearchRetrievalAgent
 from .research_retrieval.model import ResearchRetrievalInput, ResearchRetrievalOutput
 from .script_outline.agent import ScriptOutlineAgent
@@ -36,4 +32,7 @@ __all__ = [
     "ScriptWriterAgent",
     "ScriptWriterInput",
     "ScriptWriterOutput",
+    "DoctrineValidatorAgent",
+    "DoctrineValidatorInput",
+    "DoctrineValidatorOutput",
 ]
