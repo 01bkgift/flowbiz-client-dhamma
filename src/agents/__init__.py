@@ -13,6 +13,8 @@ from .script_outline.agent import ScriptOutlineAgent
 from .script_outline.model import ScriptOutlineInput, ScriptOutlineOutput
 from .script_writer.agent import ScriptWriterAgent
 from .script_writer.model import ScriptWriterInput, ScriptWriterOutput
+from .seo_metadata.agent import SeoMetadataAgent
+from .seo_metadata.model import SeoMetadataInput, SeoMetadataOutput
 from .topic_prioritizer.agent import TopicPrioritizerAgent
 from .topic_prioritizer.model import PriorityInput, PriorityOutput
 from .trend_scout.agent import TrendScoutAgent
@@ -34,6 +36,9 @@ __all__ = [
     "ScriptWriterAgent",
     "ScriptWriterInput",
     "ScriptWriterOutput",
+    "SeoMetadataAgent",
+    "SeoMetadataInput",
+    "SeoMetadataOutput",
     "LocalizationSubtitleAgent",
     "LocalizationSubtitleInput",
     "LocalizationSubtitleOutput",
