@@ -135,7 +135,7 @@ class SeoMetadataAgent(BaseAgent[SeoMetadataInput, SeoMetadataOutput]):
 
         if keyword and not base_title.startswith(keyword):
             if base_title.lower().startswith(keyword.lower()):
-                base_title = f"{keyword}{base_title[len(keyword):]}"
+                base_title = f"{keyword}{base_title[len(keyword) :]}"
             else:
                 base_title = f"{keyword} {base_title}".strip()
 
