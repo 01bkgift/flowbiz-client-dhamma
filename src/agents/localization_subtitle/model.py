@@ -78,13 +78,9 @@ class LocalizationSubtitleMeta(BaseModel):
     """Metadata calculated for the generated subtitle."""
 
     lines: int = Field(ge=1, description="จำนวนบรรทัดทั้งหมดในไฟล์ SRT")
-    duration_total: float = Field(
-        ge=0, description="ระยะเวลารวมตั้งแต่เริ่มจนจบบล็อกสุดท้าย"
-    )
+    duration_total: float = Field(ge=0, description="ระยะเวลารวมตั้งแต่เริ่มจนจบบล็อกสุดท้าย")
     segments_count: int = Field(ge=1, description="จำนวนบล็อก subtitle")
-    time_continuity_ok: bool = Field(
-        description="เวลาของแต่ละบล็อกต่อเนื่องกันโดยไม่มีช่องว่าง"
-    )
+    time_continuity_ok: bool = Field(description="เวลาของแต่ละบล็อกต่อเนื่องกันโดยไม่มีช่องว่าง")
     no_overlap: bool = Field(description="ไม่มีการซ้อนทับของเวลา")
     no_empty_line: bool = Field(description="ไม่มีบรรทัดข้อความว่างในแต่ละบล็อก")
     self_check: bool = Field(
@@ -179,7 +175,9 @@ class LocalizationSubtitleOutput(BaseModel):
                 first_start = start_seconds
 
             if last_end is not None:
-                if not math.isclose(start_seconds, last_end, rel_tol=1e-4, abs_tol=1e-3):
+                if not math.isclose(
+                    start_seconds, last_end, rel_tol=1e-4, abs_tol=1e-3
+                ):
                     continuity_ok = False
                 if start_seconds < last_end - 1e-3:
                     no_overlap = False

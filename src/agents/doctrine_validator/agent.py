@@ -418,12 +418,8 @@ class DoctrineValidatorAgent(
         numerator = sum(
             source_counter[token] * target_counter[token] for token in intersection
         )
-        source_norm = math.sqrt(
-            sum(value * value for value in source_counter.values())
-        )
-        target_norm = math.sqrt(
-            sum(value * value for value in target_counter.values())
-        )
+        source_norm = math.sqrt(sum(value * value for value in source_counter.values()))
+        target_norm = math.sqrt(sum(value * value for value in target_counter.values()))
         if source_norm == 0 or target_norm == 0:
             return 0.0
         return numerator / (source_norm * target_norm)

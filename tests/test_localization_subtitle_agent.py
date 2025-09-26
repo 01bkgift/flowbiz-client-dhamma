@@ -68,9 +68,7 @@ class TestLocalizationSubtitleAgent:
 
         # Validate SRT structure
         blocks = [
-            block.strip()
-            for block in output.srt.strip().split("\n\n")
-            if block.strip()
+            block.strip() for block in output.srt.strip().split("\n\n") if block.strip()
         ]
         assert len(blocks) == 4
         for idx, block in enumerate(blocks, start=1):
@@ -88,7 +86,9 @@ class TestLocalizationSubtitleAgent:
         assert output.meta.self_check is True
 
         # Summary should respect length requirements
-        summary_words = [w for w in re.split(r'\s+', output.english_summary.strip()) if w]
+        summary_words = [
+            w for w in re.split(r"\s+", output.english_summary.strip()) if w
+        ]
         assert 50 <= len(summary_words) <= 100
         assert output.warnings == []
 
