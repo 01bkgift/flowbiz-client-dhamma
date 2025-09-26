@@ -24,6 +24,12 @@
 - ให้คะแนนตามมิติต่างๆ (search intent, freshness, evergreen, brand fit)
 - จัดลำดับความสำคัญพร้อมเหตุผล
 
+### 🎬 LocalizationSubtitleAgent
+- แปลงสคริปต์ที่อนุมัติแล้วให้เป็นไฟล์ SRT พร้อมไทม์มิ่งต่อเนื่อง
+- ล้าง production cue เช่น `[CIT:...]` และ `(หยุด ...)` ให้อัตโนมัติ
+- สร้างสรุปภาษาอังกฤษ 50-100 คำ พร้อม metadata การตรวจสอบคุณภาพ
+- ให้คำเตือนหากจำเป็น (เช่น สรุปถูกตัด/เติม หรือพบความไม่ต่อเนื่องของเวลา)
+
 ### 💻 CLI Interface
 - รันคำสั่งผ่าน command line ง่ายๆ
 - แสดงผลสวยงามด้วย Rich tables และสี
@@ -75,6 +81,23 @@ python -m cli.main trend-scout \
   --input src/agents/trend_scout/mock_input.json \
   --out output/result.json
 
+# รัน LocalizationSubtitleAgent จาก Python (ตัวอย่าง)
+python - <<'PY'
+from agents.localization_subtitle import LocalizationSubtitleAgent, LocalizationSubtitleInput, SubtitleSegment
+
+agent = LocalizationSubtitleAgent()
+input_data = LocalizationSubtitleInput(
+    base_start_time="00:00:05,000",
+    approved_script=[
+        SubtitleSegment(segment_type="intro", text="ยินดีต้อนรับ [CIT:123]", est_seconds=6),
+        SubtitleSegment(segment_type="teaching", text="ฝึกหายใจลึก (หยุด 1 วิ)", est_seconds=8),
+    ],
+)
+result = agent.run(input_data)
+print(result.srt)
+print(result.english_summary)
+PY
+
 # ดูข้อมูลเวอร์ชัน
 python -m cli.main version
 
@@ -122,6 +145,7 @@ dhamma-channel-automation/
 │   ├── ROADMAP.md                  # แผนงาน
 │   └── TROUBLESHOOTING.md          # แก้ไขปัญหา
 ├── 📝 prompts/                     # Prompt templates
+│   ├── localization_subtitle_v2.txt
 │   └── trend_scout_v1.txt
 ├── 🧠 src/                         # Source code หลัก
 │   ├── automation_core/            # โมดูลหลัก
@@ -134,6 +158,10 @@ dhamma-channel-automation/
 │   │       ├── scoring.py          # การคำนวณคะแนน
 │   │       └── text.py             # ประมวลผลข้อความ
 │   └── agents/                     # AI Agents
+│       ├── localization_subtitle/  # LocalizationSubtitleAgent
+│       │   ├── __init__.py
+│       │   ├── agent.py
+│       │   └── model.py
 │       └── trend_scout/            # TrendScoutAgent
 │           ├── __init__.py
 │           ├── model.py            # Pydantic models
@@ -144,7 +172,8 @@ dhamma-channel-automation/
 │   ├── __init__.py
 │   └── main.py                     # CLI หลัก
 ├── 🧪 tests/                       # Tests
-│   ├── test_trend_scout_agent.py   # ทดสอบ Agent
+│   ├── test_localization_subtitle_agent.py  # ทดสอบ LocalizationSubtitleAgent
+│   ├── test_trend_scout_agent.py   # ทดสอบ TrendScoutAgent
 │   ├── test_prompt_loading.py      # ทดสอบ prompt loading
 │   └── test_scoring_utils.py       # ทดสอบการคำนวณ
 ├── 📤 output/                      # ไฟล์ผลลัพธ์

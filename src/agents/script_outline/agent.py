@@ -423,9 +423,9 @@ class ScriptOutlineAgent(BaseAgent[ScriptOutlineInput, ScriptOutlineOutput]):
             teaching_points=content["points"],
             concept_links=content["concepts"],
             citation_placeholders=[f"p{123 + index * 100}"],
-            retention_tags=["guided_breath"]
-            if "อานาปาน" in concept
-            else ["soft_pause"],
+            retention_tags=(
+                ["guided_breath"] if "อานาปาน" in concept else ["soft_pause"]
+            ),
         )
 
     def _generate_practice_steps(self, input_data: ScriptOutlineInput) -> list[str]:

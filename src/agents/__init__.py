@@ -1,9 +1,11 @@
 """agents - โมดูลรวม AI Agents ทั้งหมด"""
 
-from .doctrine_validator import (
-    DoctrineValidatorAgent,
-    DoctrineValidatorInput,
-    DoctrineValidatorOutput,
+from .localization_subtitle.agent import LocalizationSubtitleAgent
+from .localization_subtitle.model import (
+    LocalizationSubtitleInput,
+    LocalizationSubtitleMeta,
+    LocalizationSubtitleOutput,
+    SubtitleSegment,
 )
 from .research_retrieval.agent import ResearchRetrievalAgent
 from .research_retrieval.model import ResearchRetrievalInput, ResearchRetrievalOutput
@@ -32,7 +34,28 @@ __all__ = [
     "ScriptWriterAgent",
     "ScriptWriterInput",
     "ScriptWriterOutput",
-    "DoctrineValidatorAgent",
-    "DoctrineValidatorInput",
-    "DoctrineValidatorOutput",
+    "LocalizationSubtitleAgent",
+    "LocalizationSubtitleInput",
+    "LocalizationSubtitleOutput",
+    "LocalizationSubtitleMeta",
+    "SubtitleSegment",
 ]
+
+try:  # Optional dependency: sentence_transformers
+    from .doctrine_validator import (
+        DoctrineValidatorAgent,
+        DoctrineValidatorInput,
+        DoctrineValidatorOutput,
+    )
+except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
+    DoctrineValidatorAgent = None  # type: ignore[assignment]
+    DoctrineValidatorInput = None  # type: ignore[assignment]
+    DoctrineValidatorOutput = None  # type: ignore[assignment]
+else:  # pragma: no cover - exercised when dependency is installed
+    __all__.extend(
+        [
+            "DoctrineValidatorAgent",
+            "DoctrineValidatorInput",
+            "DoctrineValidatorOutput",
+        ]
+    )

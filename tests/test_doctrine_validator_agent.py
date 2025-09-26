@@ -102,10 +102,11 @@ class TestDoctrineValidatorAgent:
         result = self.agent.run(input_data)
         statuses = [segment.status for segment in result.segments]
 
-        assert statuses[1] == SegmentStatus.MISSING_CITATION
+        assert statuses[1] == SegmentStatus.HALLUCINATION
         assert statuses[2] == SegmentStatus.UNVERIFIABLE
         assert any("สุ่มเสี่ยง" in warn for warn in result.segments[2].warnings)
-        assert result.summary.missing_citation == 1
+        assert result.summary.hallucination == 1
+        assert result.summary.missing_citation == 0
         assert result.summary.unverifiable >= 1
         assert result.summary.total == 3
 
