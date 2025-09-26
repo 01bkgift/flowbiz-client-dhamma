@@ -246,21 +246,25 @@ class DoctrineValidatorAgent(
         embedding_available = SentenceTransformer is not None
 
         if normalized_type == SegmentType.TEACHING and not citations:
-            # ตรวจจับ hallucination ถ้าไม่มี citation และไม่ตรงกับ passages ใด ๆ
+            # ถือว่าเป็น hallucination เสมอเมื่อไม่มี citation เพื่อบังคับให้มีการอ้างอิง
             best_similarity = 0.0
             for passage in passage_map.values():
                 similarity = self._compute_similarity(segment.text, passage)
                 if similarity > best_similarity:
                     best_similarity = similarity
-            if best_similarity < 0.6:
-                status = SegmentStatus.HALLUCINATION
-                detail = "ไม่พบใจความใน passages"
-                if not embedding_available:
-                    detail += " (ใช้การเทียบคำแบบพื้นฐาน)"
-                notes = f"{detail} (similarity_max={best_similarity:.2f})"
-            else:
-                status = SegmentStatus.MISSING_CITATION
+
+            status = SegmentStatus.HALLUCINATION
+            detail = "ไม่พบใจความใน passages"
+            if best_similarity >= 0.6:
+                detail = (
+                    "พบใจความใกล้เคียงใน passages แต่ไม่มี citation"
+                )
                 suggestions = "เพิ่ม citation ให้กับใจความสอนหลัก"
+            elif not embedding_available:
+                detail += " (ใช้การเทียบคำแบบพื้นฐาน)"
+
+            notes = f"{detail} (similarity_max={best_similarity:.2f})"
+            warnings.append("segment มีเนื้อหาสอนแต่ไม่มี citation")
         elif not citations:
             # ตรวจจับ hallucination สำหรับประเภทอื่น ๆ เช่นกัน
             best_similarity = 0.0
