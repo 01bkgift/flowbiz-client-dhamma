@@ -360,7 +360,7 @@ class SchedulingPublishingAgent(
             earliest_start = min(parsed_start_dates)
             earliest_monday = (earliest_start - timedelta(days=earliest_start.weekday())).date()
             min_week_index = min(entry.week_index for entry in input_data.content_calendar)
-            base = earliest_monday - timedelta(weeks=min_week_index)
+            base = earliest_monday - timedelta(weeks=min_week_index - 1)
             return base
 
         # fallback: current week Monday in timezone
