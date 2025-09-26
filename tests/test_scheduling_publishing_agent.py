@@ -97,7 +97,9 @@ def test_scheduling_agent_assigns_slots(basic_input: SchedulingInput) -> None:
     assert v02.publish_status == "scheduled"
     assert v02.scheduled_datetime_local is not None
     assert v02.scheduled_datetime_local > v01.scheduled_datetime_local
-    assert v02.scheduled_datetime_local - v01.scheduled_datetime_local >= timedelta(hours=24)
+    assert v02.scheduled_datetime_local - v01.scheduled_datetime_local >= timedelta(
+        hours=24
+    )
 
     v03 = by_id["V03"]
     assert v03.publish_status == "scheduled"

@@ -1,4 +1,5 @@
 """Pydantic models for Scheduling & Publishing agent."""
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -19,7 +20,9 @@ class ContentCalendarEntry(BaseModel):
     content_type: Literal["longform", "shorts", "live", "audio"] = Field(
         ..., description="ประเภทคอนเทนต์"
     )
-    expected_duration_min: int | None = Field(None, ge=0, description="ระยะเวลาคาดการณ์ (นาที)")
+    expected_duration_min: int | None = Field(
+        None, ge=0, description="ระยะเวลาคาดการณ์ (นาที)"
+    )
     suggested_publish_week: str = Field(
         ..., pattern=r"^W\d+$", description="สัปดาห์แนะนำ (เช่น W1)"
     )
@@ -57,7 +60,9 @@ class ScheduleConstraints(BaseModel):
         ),
     )
 
-    _forbidden_intervals_utc: list[tuple[datetime, datetime]] = PrivateAttr(default_factory=list)
+    _forbidden_intervals_utc: list[tuple[datetime, datetime]] = PrivateAttr(
+        default_factory=list
+    )
 
     @validator("forbidden_times", each_item=True)
     def validate_forbidden_interval(cls, value: str) -> str:
@@ -77,7 +82,9 @@ class ScheduleConstraints(BaseModel):
                 parse_iso_datetime(start).astimezone(UTC),
                 parse_iso_datetime(end).astimezone(UTC),
             )
-            for start, end in (interval.split("/", 1) for interval in self.forbidden_times)
+            for start, end in (
+                interval.split("/", 1) for interval in self.forbidden_times
+            )
         ]
 
     @property
@@ -156,7 +163,9 @@ class SchedulingInput(BaseModel):
     audience_analytics: AudienceAnalytics
 
     @validator("content_calendar")
-    def validate_calendar(cls, value: list[ContentCalendarEntry]) -> list[ContentCalendarEntry]:
+    def validate_calendar(
+        cls, value: list[ContentCalendarEntry]
+    ) -> list[ContentCalendarEntry]:
         if not value:
             raise ValueError("content_calendar must not be empty")
         return value

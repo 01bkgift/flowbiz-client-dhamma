@@ -1,4 +1,5 @@
 """Scheduling & Publishing agent implementation."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -31,9 +32,7 @@ class CandidateSlot:
     reason: str
 
 
-class SchedulingPublishingAgent(
-    BaseAgent[SchedulingInput, SchedulingOutput]
-):
+class SchedulingPublishingAgent(BaseAgent[SchedulingInput, SchedulingOutput]):
     """Agent responsible for scheduling and publishing automation."""
 
     def __init__(self) -> None:
@@ -163,9 +162,7 @@ class SchedulingPublishingAgent(
                     )
                 else:
                     # Overflow case
-                    overflow_reason = (
-                        "ไม่มี slot ที่ว่างในสัปดาห์ตามลำดับความสำคัญและข้อจำกัด"
-                    )
+                    overflow_reason = "ไม่มี slot ที่ว่างในสัปดาห์ตามลำดับความสำคัญและข้อจำกัด"
                     warnings.append(
                         f"วิดีโอ {entry.video_id} ไม่สามารถจัดตารางได้ ({overflow_reason})"
                     )
@@ -281,7 +278,10 @@ class SchedulingPublishingAgent(
             ):
                 continue
 
-            if day_usage[candidate.local_datetime.date()] >= constraints.max_videos_per_day:
+            if (
+                day_usage[candidate.local_datetime.date()]
+                >= constraints.max_videos_per_day
+            ):
                 continue
 
             if constraints.is_forbidden(candidate.utc_datetime):
@@ -308,7 +308,9 @@ class SchedulingPublishingAgent(
         """Yield candidate slots ordered by preference."""
 
         top_times = [self._parse_time(ts) for ts in analytics.top_time_slots_utc]
-        avoid_times = {self._parse_time(ts) for ts in analytics.lowest_traffic_slots_utc}
+        avoid_times = {
+            self._parse_time(ts) for ts in analytics.lowest_traffic_slots_utc
+        }
         day_order = self._build_day_order(analytics.recent_best_days)
 
         for week_offset in range(max_weeks_to_check):
@@ -322,9 +324,13 @@ class SchedulingPublishingAgent(
                     if slot_time in avoid_times:
                         continue
 
-                    local_dt = datetime.combine(candidate_date, slot_time, timezone_info)
+                    local_dt = datetime.combine(
+                        candidate_date, slot_time, timezone_info
+                    )
                     utc_dt = local_dt.astimezone(UTC)
-                    reason = self._build_reason(candidate_date, slot_time, analytics, week_offset)
+                    reason = self._build_reason(
+                        candidate_date, slot_time, analytics, week_offset
+                    )
 
                     yield CandidateSlot(
                         week_index=week_index,
@@ -335,12 +341,15 @@ class SchedulingPublishingAgent(
 
                 # fallback slot at 19:00 local if no top slot used
                 fallback_local = time(19, 0)
-                if fallback_local not in top_times and fallback_local not in avoid_times:
-                    local_dt = datetime.combine(candidate_date, fallback_local, timezone_info)
-                    utc_dt = local_dt.astimezone(UTC)
-                    reason = (
-                        f"ใช้เวลา fallback 19:00 เพราะ slot prime เต็มในวัน {candidate_date.strftime('%A')}"
+                if (
+                    fallback_local not in top_times
+                    and fallback_local not in avoid_times
+                ):
+                    local_dt = datetime.combine(
+                        candidate_date, fallback_local, timezone_info
                     )
+                    utc_dt = local_dt.astimezone(UTC)
+                    reason = f"ใช้เวลา fallback 19:00 เพราะ slot prime เต็มในวัน {candidate_date.strftime('%A')}"
                     yield CandidateSlot(
                         week_index=week_index,
                         local_datetime=local_dt,
@@ -361,12 +370,18 @@ class SchedulingPublishingAgent(
         if input_data.constraints.planning_start_date:
             return input_data.constraints.planning_start_date
 
-        parsed_start_dates = [start for start, _ in input_data.constraints.forbidden_intervals_utc]
+        parsed_start_dates = [
+            start for start, _ in input_data.constraints.forbidden_intervals_utc
+        ]
 
         if parsed_start_dates:
             earliest_start = min(parsed_start_dates)
-            earliest_monday = (earliest_start - timedelta(days=earliest_start.weekday())).date()
-            min_week_index = min(entry.week_index for entry in input_data.content_calendar)
+            earliest_monday = (
+                earliest_start - timedelta(days=earliest_start.weekday())
+            ).date()
+            min_week_index = min(
+                entry.week_index for entry in input_data.content_calendar
+            )
             base = earliest_monday - timedelta(weeks=min_week_index - 1)
             return base
 
@@ -403,7 +418,10 @@ class SchedulingPublishingAgent(
         for scheduled_pillar, scheduled_time in scheduled_slots:
             if scheduled_pillar != pillar:
                 continue
-            if abs((scheduled_time - candidate_utc).total_seconds()) < twenty_four_hours.total_seconds():
+            if (
+                abs((scheduled_time - candidate_utc).total_seconds())
+                < twenty_four_hours.total_seconds()
+            ):
                 return True
         return False
 
@@ -419,16 +437,27 @@ class SchedulingPublishingAgent(
                 continue
             if not item.scheduled_datetime_utc:
                 continue
-            if abs((item.scheduled_datetime_utc - candidate_utc).total_seconds()) < twenty_four_hours.total_seconds():
+            if (
+                abs((item.scheduled_datetime_utc - candidate_utc).total_seconds())
+                < twenty_four_hours.total_seconds()
+            ):
                 return item.video_id
         return None
 
     def _build_meta(self, schedule_plan: list[ScheduleEntry]) -> ScheduleMeta:
         total = len(schedule_plan)
-        scheduled_count = sum(1 for item in schedule_plan if item.publish_status == "scheduled")
-        collision_count = sum(1 for item in schedule_plan if item.publish_status == "collision")
-        overflow_count = sum(1 for item in schedule_plan if item.publish_status == "overflow")
-        pending_count = sum(1 for item in schedule_plan if item.publish_status == "pending")
+        scheduled_count = sum(
+            1 for item in schedule_plan if item.publish_status == "scheduled"
+        )
+        collision_count = sum(
+            1 for item in schedule_plan if item.publish_status == "collision"
+        )
+        overflow_count = sum(
+            1 for item in schedule_plan if item.publish_status == "overflow"
+        )
+        pending_count = sum(
+            1 for item in schedule_plan if item.publish_status == "pending"
+        )
 
         pillar_distribution: dict[str, int] = defaultdict(int)
         for item in schedule_plan:
@@ -483,7 +512,9 @@ class SchedulingPublishingAgent(
     ) -> str:
         local_day = candidate_date.strftime("%A")
         slot_label = slot_time.strftime("%H:%M")
-        week_desc = "ตามสัปดาห์แนะนำ" if week_offset == 0 else f"ขยับไปสัปดาห์ที่ {week_offset + 1}"
+        week_desc = (
+            "ตามสัปดาห์แนะนำ" if week_offset == 0 else f"ขยับไปสัปดาห์ที่ {week_offset + 1}"
+        )
         if slot_label in analytics.top_time_slots_utc:
             return f"เลือก slot prime time ({slot_label}) วัน {local_day}, {week_desc}"
         return f"เลือก slot {slot_label} วัน {local_day} ({week_desc})"
@@ -492,4 +523,3 @@ class SchedulingPublishingAgent(
     def _parse_time(value: str) -> time:
         hour, minute = value.split(":")
         return time(int(hour), int(minute))
-
