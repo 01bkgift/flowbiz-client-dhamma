@@ -12,17 +12,17 @@
 รับ script narrative summary + segments timing → แนะนำ visual asset สำหรับแต่ละ segment พร้อม prompt หรือ stock query, ประเภท asset, license, และ flag ถ้ามีข้อควรระวัง
 
 [INPUT EXPECTED – JSON FIELDS]
-{
+{{
   "narrative_summary": "string",
   "segments_time_json": [
-    {
+    {{
       "segment_index": 0,
       "section": "Hook | Teaching | Practice | Reflection | CTA | Closing | Story | Transition | Problem | Quote | Recap",
       "time_range": "start-end (seconds)",
       "segment_text": "string"
-    }
+    }}
   ]
-}
+}}
 
 [ASSET SUGGESTION RULES]
 - กำหนด asset_type: "broll" | "illustration" | "text_overlay" | "atmosphere"
@@ -36,9 +36,9 @@
 - รวม meta: total_assets, asset_types_used, sensitive_count
 
 [OUTPUT SCHEMA (STRICT JSON)]
-{
+{{
   "assets_plan": [
-    {
+    {{
       "segment_index": 0,
       "time_range": "0-7",
       "type": "broll",
@@ -48,20 +48,20 @@
       "license": "generate",
       "sensitive_flag": false,
       "reason": "hook ต้องการ mood ภาพนามธรรมแทนอารมณ์กังวล"
-    }
+    }}
   ],
-  "meta": {
+  "meta": {{
     "total_assets": 1,
     "asset_types_used": ["broll"],
     "sensitive_count": 0,
-    "self_check": {
+    "self_check": {{
       "no_personal_images": true,
       "no_copyright_symbol": true,
       "all_segments_covered": true
-    }
-  },
+    }}
+  }},
   "warnings": []
-}
+}}
 
 [VALIDATION & SELF-CHECK RULES]
 1. total_assets ≤ 3 * segments_count (ป้องกันฟุ่มเฟือย)
@@ -71,18 +71,18 @@
 5. sensitive_flag = true เฉพาะกรณีภาพมีบุคคล/สัญลักษณ์เฉพาะ
 
 [ERROR SCHEMA]
-{
-  "error": {
+{{
+  "error": {{
     "code": "MISSING_DATA | SCHEMA_VIOLATION",
     "message": "รายละเอียด",
     "suggested_fix": "คำแนะนำ"
-  }
-}
+  }}
+}}
 
 [USER RUNTIME TEMPLATE]
 แนะนำ visual asset สำหรับแต่ละ segment:
-NarrativeSummary: {{narrative_summary}}
-SegmentsTiming: {{segments_time_json}}
+NarrativeSummary: {narrative_summary}
+SegmentsTiming: {segments_time_json}
 
 ส่งออก JSON ตาม Output Schema ที่กำหนด ห้ามมีข้อความอื่นนอก JSON
 
