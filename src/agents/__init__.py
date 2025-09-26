@@ -9,6 +9,14 @@ from .localization_subtitle.model import (
 )
 from .research_retrieval.agent import ResearchRetrievalAgent
 from .research_retrieval.model import ResearchRetrievalInput, ResearchRetrievalOutput
+from .scheduling_publishing.agent import SchedulingPublishingAgent
+from .scheduling_publishing.model import (
+    AudienceAnalytics,
+    ContentCalendarEntry,
+    ScheduleConstraints,
+    SchedulingInput,
+    SchedulingOutput,
+)
 from .script_outline.agent import ScriptOutlineAgent
 from .script_outline.model import ScriptOutlineInput, ScriptOutlineOutput
 from .script_writer.agent import ScriptWriterAgent
@@ -39,6 +47,12 @@ __all__ = [
     "SeoMetadataAgent",
     "SeoMetadataInput",
     "SeoMetadataOutput",
+    "SchedulingPublishingAgent",
+    "SchedulingInput",
+    "SchedulingOutput",
+    "ContentCalendarEntry",
+    "ScheduleConstraints",
+    "AudienceAnalytics",
     "LocalizationSubtitleAgent",
     "LocalizationSubtitleInput",
     "LocalizationSubtitleOutput",
