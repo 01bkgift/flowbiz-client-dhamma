@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Iterable
+from collections.abc import Iterable
 
 from automation_core.base_agent import BaseAgent
 
 from .model import (
     MetaInfo,
+    SelfCheck,
     SeoMetadataInput,
     SeoMetadataOutput,
-    SelfCheck,
 )
 
 logger = logging.getLogger(__name__)
