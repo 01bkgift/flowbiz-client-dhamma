@@ -44,11 +44,11 @@
 }
 
 [FORECAST RULES]
-- ใช้ views_24h, trend, baseline, และ experiment ปรับ multiplier:
+- ใช้ views_24h, trend, baseline, และ experiment ปรับ multiplier (ตั้งต้น = 1.0):
   - ถ้า seasonality="high" และ trend="upward" → multiplier 1.1–1.2
-  - ถ้า CTR, retention สูงกว่า baseline → multiplier อิง growth rate เฉลี่ย + experiment boost
-  - ถ้า traffic จาก browse+search < 70% → conservative forecast
-- forecast_views_Nd = estimated multiplier * baseline[views_Nd_avg] + experiment boost (ถ้ามี)
+  - ถ้า CTR, retention สูงกว่า baseline → ตั้ง estimated multiplier อย่างน้อยเท่ากับ growth_rate_avg; growth_rate_avg = เฉลี่ย (video.views_30d ÷ baseline.views_30d_avg) จาก trend.recent_similar_videos (หากไม่มีข้อมูลใช้ 1.05)
+  - ถ้า traffic จาก browse+search < 70% → conservative forecast (จำกัด multiplier ให้อยู่ในช่วง 0.80–0.95)
+- forecast_views_Nd = baseline[views_Nd_avg] * estimated multiplier * experiment multiplier (experiment multiplier = 1 + expected_ctr_boost_pct/100 ถ้ามี, ไม่เช่นนั้น 1.0)
 - forecast_subs_Nd = อัตราส่วน subs_gained/views ใน baseline * forecast_views_Nd
 - forecast_revenue_Nd = forecast_views_Nd/1000 * revenue_per_1k_views
 - confidence: high/medium/low (อิงความต่างจาก baseline และ seasonality)
@@ -56,7 +56,7 @@
 - สรุปปัจจัยสนับสนุน/เสี่ยง (bullets ≤ 5)
 
 [OUTPUT SCHEMA (STRICT JSON)]
-{
+{ 
   "video_id": "V01",
   "title": "ปล่อยวางความกังวลก่อนนอน",
   "published_at": "2025-10-06T13:00:00Z",
@@ -66,7 +66,7 @@
     "views_60d": 27200,
     "views_90d": 30800,
     "subs_7d": 18,
-    "subs_30d": 38,
+    "subs_30d": 36,
     "subs_60d": 46,
     "subs_90d": 59,
     "revenue_7d": 535,
@@ -104,7 +104,7 @@
 1. all_fields_present: ทุก field ใน forecast และ meta ครบ
 2. confidence_in_range: confidence = high/medium/low, score 0.0–1.0
 3. ถ้า forecast ต่ำ baseline >20% → warnings[] = ["underperform forecast"]
-4. หาก input ไม่พอ → warnings[] หรือ error schema
+4. หาก input ไม่พอ (ขาด analytics_initial หรือ baseline หรือไม่มี views_24h/ctr_pct/retention_pct) → แจ้ง error schema; ถ้าขาด field เสริมอื่นให้เพิ่มข้อความใน warnings[]
 
 [ERROR SCHEMA]
 {
@@ -117,89 +117,12 @@
 
 [USER RUNTIME TEMPLATE]
 พยากรณ์ยอดวิว/รายได้/สมาชิก สำหรับวิดีโอนี้:
+VideoMetadata: { "video_id": "{{video_id}}", "title": "{{title}}", "published_at": "{{published_at}}" }
 VideoAnalyticsInitial: {{analytics_initial_json}}
 Baseline: {{baseline_json}}
 Trend: {{trend_json}}
 Experiment: {{experiment_json}}
 
-ส่งออก JSON ตาม Output Schema เท่านั้น ห้ามมีข้อความอื่นนอก JSON
-
-[ตัวอย่าง input]
-{
-  "video_id": "V01",
-  "title": "ปล่อยวางความกังวลก่อนนอน",
-  "published_at": "2025-10-06T13:00:00Z",
-  "analytics_initial": {
-    "views_24h": 4100,
-    "ctr_pct": 4.1,
-    "retention_pct": 58.2,
-    "subs_gained": 13,
-    "traffic_sources_pct": {"browse": 44.2, "search": 32.1, "suggested": 18.4, "external": 3.9, "other": 1.4}
-  },
-  "baseline": {
-    "views_7d_avg": 9700,
-    "views_30d_avg": 18400,
-    "ctr_avg": 3.4,
-    "retention_avg": 52.0,
-    "subs_gained_30d_avg": 31,
-    "revenue_per_1k_views": 46.5
-  },
-  "trend": {
-    "seasonality": "high",
-    "content_pillar_trend": "upward",
-    "recent_similar_videos": [
-      {"video_id":"V00","views_7d":9500,"views_30d":17700,"ctr":3.2,"retention":54.1,"published_at":"2025-09-10"}
-    ]
-  },
-  "experiment": {
-    "ab_test_winner": "T1",
-    "expected_ctr_boost_pct": 0.5
-  }
-}
-
-[ตัวอย่าง output]
-{
-  "video_id": "V01",
-  "title": "ปล่อยวางความกังวลก่อนนอน",
-  "published_at": "2025-10-06T13:00:00Z",
-  "forecast": {
-    "views_7d": 11500,
-    "views_30d": 21500,
-    "views_60d": 27200,
-    "views_90d": 30800,
-    "subs_7d": 18,
-    "subs_30d": 38,
-    "subs_60d": 46,
-    "subs_90d": 59,
-    "revenue_7d": 535,
-    "revenue_30d": 999,
-    "revenue_60d": 1265,
-    "revenue_90d": 1433
-  },
-  "confidence": "high",
-  "trend": "upward",
-  "factors": [
-    "CTR และ retention สูงกว่า baseline เฉลี่ย",
-    "seasonality: เข้าช่วงคนดูธรรมะสูง",
-    "traffic จาก browse/search รวม 76.3% เกิน threshold",
-    "A/B test winner คาดว่าจะ boost CTR 0.5%",
-    "คลิปแนวนี้ trend ขาขึ้น"
-  ],
-  "risk_factors": [
-    "หาก CTR ตกต่ำหลัง 7 วันแรก อาจลด momentum ได้",
-    "ถ้ามีคลิปคู่แข่ง viral ในหัวข้อเดียวกัน อาจแย่ง traffic"
-  ],
-  "meta": {
-    "baseline_id": "2025-09-avg",
-    "trend_type": "seasonal_up",
-    "experiment_winner": "T1",
-    "confidence_score": 0.87,
-    "self_check": {
-      "all_fields_present": true,
-      "confidence_in_range": true
-    }
-  },
-  "warnings": []
-}
+[ส่งออก JSON ตาม Output Schema เท่านั้น ห้ามมีข้อความอื่นนอก JSON]
 
 [END OF PROMPT]
