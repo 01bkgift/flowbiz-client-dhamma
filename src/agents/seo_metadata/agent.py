@@ -98,9 +98,7 @@ class SeoMetadataAgent(BaseAgent[SeoMetadataInput, SeoMetadataOutput]):
 
         warnings: list[str] = []
         if first_paragraph_length > 200:
-            warnings.append(
-                "ย่อหน้าแรกของคำอธิบายยาวเกิน 200 ตัวอักษร ควรปรับให้กระชับ"
-            )
+            warnings.append("ย่อหน้าแรกของคำอธิบายยาวเกิน 200 ตัวอักษร ควรปรับให้กระชับ")
         if not primary_keyword_in_title:
             warnings.append("หัวข้อไม่ได้ขึ้นต้นด้วยคีย์เวิร์ดหลัก")
         if not no_clickbait:
@@ -213,9 +211,7 @@ class SeoMetadataAgent(BaseAgent[SeoMetadataInput, SeoMetadataOutput]):
                 break
 
         if not teachings:
-            teachings.append(
-                f"การประยุกต์{primary_keyword or topic_title}ให้ใจสงบ"
-            )
+            teachings.append(f"การประยุกต์{primary_keyword or topic_title}ให้ใจสงบ")
 
         if len(teachings) == 1:
             teachings.append("ฝึกสติเพื่อรู้เท่าทันความคิดก่อนพักผ่อน")
@@ -247,7 +243,9 @@ class SeoMetadataAgent(BaseAgent[SeoMetadataInput, SeoMetadataOutput]):
         if primary_keyword:
             add_unique([f"{primary_keyword}ก่อนนอน", f"ฝึก{primary_keyword}"])
 
-        summary_keywords = re.findall(r"[\u0E00-\u0E7Fa-zA-Z]+", input_data.script_summary)
+        summary_keywords = re.findall(
+            r"[\u0E00-\u0E7Fa-zA-Z]+", input_data.script_summary
+        )
         add_unique(summary_keywords[:5])
 
         add_unique(self._generic_tags)
@@ -285,7 +283,9 @@ class SeoMetadataAgent(BaseAgent[SeoMetadataInput, SeoMetadataOutput]):
         for keyword in input_data.primary_keywords[1:3]:
             add_hash(keyword)
 
-        topic_terms = [term for term in re.split(r"\s+", input_data.topic_title) if term]
+        topic_terms = [
+            term for term in re.split(r"\s+", input_data.topic_title) if term
+        ]
         for term in topic_terms[:2]:
             add_hash(term)
 
