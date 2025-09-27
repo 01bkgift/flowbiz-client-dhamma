@@ -105,7 +105,7 @@ class TopicScore(BaseModel):
     search_intent: float = Field(description="ความตั้งใจค้นหา")
     freshness: float = Field(description="ความใหม่")
     evergreen: float = Field(description="ความคงทน")
-    brand_fit: float = Field(description="ความเข้ากับแบรนด์")
+    brand_fit: float = Field(ge=0, le=1, description="ความเข้ากับแบรนด์")
     composite: float = Field(description="คะแนนรวม")
 
     @field_validator("search_intent", "freshness", "evergreen", "brand_fit", "composite")
