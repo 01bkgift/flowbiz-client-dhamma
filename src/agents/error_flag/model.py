@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -12,7 +10,7 @@ class AgentError(BaseModel):
 
     code: str = Field(..., description="รหัส error จาก agent")
     message: str = Field(..., description="ข้อความอธิบาย error")
-    suggested_fix: Optional[str] = Field(
+    suggested_fix: str | None = Field(
         default=None,
         description="คำแนะนำการแก้ไขจาก agent ต้นทาง",
         alias="suggested_fix",
@@ -23,11 +21,11 @@ class AgentLog(BaseModel):
     """ข้อมูล log ต่อ agent ที่ Error/Flag agent ใช้เป็น input."""
 
     agent: str = Field(..., description="ชื่อ agent ที่ส่ง log")
-    error: Optional[AgentError] = Field(
+    error: AgentError | None = Field(
         default=None, description="ข้อมูล error ถ้ามี"
     )
-    flags: List[str] = Field(default_factory=list, description="รายการ flag")
-    warnings: List[str] = Field(
+    flags: list[str] = Field(default_factory=list, description="รายการ flag")
+    warnings: list[str] = Field(
         default_factory=list, description="รายการ warning จาก agent"
     )
 
@@ -35,7 +33,7 @@ class AgentLog(BaseModel):
 class ErrorFlagInput(BaseModel):
     """Input schema สำหรับ ErrorFlagAgent."""
 
-    agent_logs: List[AgentLog] = Field(
+    agent_logs: list[AgentLog] = Field(
         default_factory=list, description="ลิสต์ log จาก agent ทั้งหมด"
     )
 
@@ -46,20 +44,20 @@ class CriticalItem(BaseModel):
     agent: str
     error_code: str
     message: str
-    suggested_action: Optional[str] = None
+    suggested_action: str | None = None
 
 
 class WarningItem(BaseModel):
     """โครงสร้างข้อมูลสำหรับ Warning severity."""
 
     agent: str
-    flag: Optional[str] = None
-    warning: Optional[str] = None
+    flag: str | None = None
+    warning: str | None = None
     message: str
-    suggested_action: Optional[str] = None
+    suggested_action: str | None = None
 
     @model_validator(mode="after")
-    def _ensure_flag_or_warning(self) -> "WarningItem":
+    def _ensure_flag_or_warning(self) -> WarningItem:
         if not self.flag and not self.warning:
             raise ValueError("ต้องมี flag หรือ warning อย่างน้อยหนึ่งตัว")
         return self
@@ -85,11 +83,11 @@ class MetaSection(BaseModel):
 class ErrorFlagOutput(BaseModel):
     """Output schema ตามที่ workflow ต้องการ."""
 
-    summary: List[str]
-    critical: List[CriticalItem]
-    warning: List[WarningItem]
-    info: List[str]
-    root_cause: List[str]
+    summary: list[str]
+    critical: list[CriticalItem]
+    warning: list[WarningItem]
+    info: list[str]
+    root_cause: list[str]
     meta: MetaSection
 
 

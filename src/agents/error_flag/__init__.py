@@ -4,9 +4,9 @@ from .agent import ErrorFlagAgent
 from .model import (
     AgentError,
     AgentLog,
+    CriticalItem,
     ErrorFlagInput,
     ErrorFlagOutput,
-    CriticalItem,
     WarningItem,
 )
 

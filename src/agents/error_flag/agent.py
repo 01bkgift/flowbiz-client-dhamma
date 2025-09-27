@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from typing import Dict, List, Tuple
 
 from automation_core.base_agent import BaseAgent
 
@@ -20,7 +19,7 @@ from .model import (
 # Message libraries for known flags/warnings
 # ---------------------------------------------------------------------------
 
-_FLAG_LIBRARY: Dict[str, Tuple[str, str]] = {
+_FLAG_LIBRARY: dict[str, tuple[str, str]] = {
     "mid_clip_drop": ("Retention ลดช่วงกลางคลิป", "ปรับ pacing, shorten ช่วงกลาง"),
     "low_comments": ("จำนวนคอมเมนต์ต่ำกว่าค่าเฉลี่ย", "เพิ่ม CTA กระตุ้นคอมเมนต์"),
     "underperform": (
@@ -38,7 +37,7 @@ _FLAG_LIBRARY: Dict[str, Tuple[str, str]] = {
     ),
 }
 
-_WARNING_LIBRARY: Dict[str, Tuple[str, str]] = {
+_WARNING_LIBRARY: dict[str, tuple[str, str]] = {
     "overflow_count > 0": (
         "มีวิดีโอรอ publish เกินโควต้าต่อวัน/สัปดาห์",
         "กระจาย schedule เพิ่มหรือเพิ่ม slot",
@@ -66,23 +65,23 @@ class ErrorFlagAgent(BaseAgent[ErrorFlagInput, ErrorFlagOutput]):
     def run(self, input_data: ErrorFlagInput) -> ErrorFlagOutput:
         """Aggregate logs and produce summary output."""
 
-        summary: List[str] = []
-        critical_items: List[CriticalItem] = []
-        warning_items: List[WarningItem] = []
-        info_items: List[str] = []
+        summary: list[str] = []
+        critical_items: list[CriticalItem] = []
+        warning_items: list[WarningItem] = []
+        info_items: list[str] = []
 
         error_counter: Counter[str] = Counter()
         flag_counter: Counter[str] = Counter()
         warning_counter: Counter[str] = Counter()
 
-        error_messages: Dict[str, str] = {}
-        flag_messages: Dict[str, str] = {}
-        warning_messages: Dict[str, str] = {}
+        error_messages: dict[str, str] = {}
+        flag_messages: dict[str, str] = {}
+        warning_messages: dict[str, str] = {}
 
         unique_agents = {log.agent for log in input_data.agent_logs}
 
         # Collect per-agent flags for summary reporting
-        flags_per_agent: Dict[str, List[str]] = defaultdict(list)
+        flags_per_agent: dict[str, list[str]] = defaultdict(list)
 
         for log in input_data.agent_logs:
             # ------------------------------------------------------------------
@@ -205,15 +204,15 @@ class ErrorFlagAgent(BaseAgent[ErrorFlagInput, ErrorFlagOutput]):
 
 def _build_root_cause_messages(
     error_counter: Counter[str],
-    error_messages: Dict[str, str],
+    error_messages: dict[str, str],
     flag_counter: Counter[str],
-    flag_messages: Dict[str, str],
+    flag_messages: dict[str, str],
     warning_counter: Counter[str],
-    warning_messages: Dict[str, str],
-) -> List[str]:
+    warning_messages: dict[str, str],
+) -> list[str]:
     """สร้างข้อความ root cause จากสถิติต่าง ๆ."""
 
-    messages: List[str] = []
+    messages: list[str] = []
 
     for code, count in error_counter.items():
         if count >= 2:
