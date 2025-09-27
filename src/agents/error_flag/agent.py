@@ -111,9 +111,7 @@ class ErrorFlagAgent(BaseAgent[ErrorFlagInput, ErrorFlagOutput]):
                 flag_counter[normalized] += 1
                 message, action = _FLAG_LIBRARY.get(
                     flag,
-                    (
-                        f"พบ flag '{flag}'", "ตรวจสอบรายละเอียด flag เพิ่มเติมกับทีมที่เกี่ยวข้อง"
-                    ),
+                    (f"พบ flag '{flag}'", "ตรวจสอบรายละเอียด flag เพิ่มเติมกับทีมที่เกี่ยวข้อง"),
                 )
                 flag_messages[normalized] = message
 
@@ -180,7 +178,9 @@ class ErrorFlagAgent(BaseAgent[ErrorFlagInput, ErrorFlagOutput]):
             root_causes.append("ยังไม่พบ recurring error/flag จากข้อมูลรอบนี้")
 
         self_check = SelfCheck(
-            all_sections_present=bool(summary and root_causes and (critical_items or warning_items)),
+            all_sections_present=bool(
+                summary and root_causes and (critical_items or warning_items)
+            ),
             no_empty_fields=bool(summary and root_causes),
         )
 

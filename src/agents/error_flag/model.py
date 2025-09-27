@@ -21,9 +21,7 @@ class AgentLog(BaseModel):
     """ข้อมูล log ต่อ agent ที่ Error/Flag agent ใช้เป็น input."""
 
     agent: str = Field(..., description="ชื่อ agent ที่ส่ง log")
-    error: AgentError | None = Field(
-        default=None, description="ข้อมูล error ถ้ามี"
-    )
+    error: AgentError | None = Field(default=None, description="ข้อมูล error ถ้ามี")
     flags: list[str] = Field(default_factory=list, description="รายการ flag")
     warnings: list[str] = Field(
         default_factory=list, description="รายการ warning จาก agent"
