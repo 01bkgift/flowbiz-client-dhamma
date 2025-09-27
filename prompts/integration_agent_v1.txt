@@ -46,15 +46,15 @@
   "integration_payload": {
     "target_system": "YouTube API",
     "mapped_data": {
-      "videoId": "V01",
+      "id": "V01",
       "snippet": {
         "title": "ปล่อยวางความกังวลก่อนนอน",
         "description": "คลิปธรรมะดีดี...",
-        "tags": ["ธรรมะ", "นอนหลับ", "ปล่อยวาง"],
-        "scheduledTime": "2025-10-06T20:00:00+07:00"
+        "tags": ["ธรรมะ", "นอนหลับ", "ปล่อยวาง"]
       },
       "status": {
-        "privacyStatus": "public"
+        "privacyStatus": "public",
+        "publishAt": "2025-10-06T20:00:00+07:00"
       }
     },
     "auth": {
@@ -123,15 +123,15 @@ IntegrationRequest: {{integration_request_json}}
   "integration_payload": {
     "target_system": "YouTube API",
     "mapped_data": {
-      "videoId": "V01",
+      "id": "V01",
       "snippet": {
         "title": "ปล่อยวางความกังวลก่อนนอน",
         "description": "คลิปธรรมะดีดี...",
-        "tags": ["ธรรมะ", "นอนหลับ", "ปล่อยวาง"],
-        "scheduledTime": "2025-10-06T20:00:00+07:00"
+        "tags": ["ธรรมะ", "นอนหลับ", "ปล่อยวาง"]
       },
       "status": {
-        "privacyStatus": "public"
+        "privacyStatus": "public",
+        "publishAt": "2025-10-06T20:00:00+07:00"
       }
     },
     "auth": {
