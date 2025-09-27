@@ -13,36 +13,36 @@
 รับ event log และ context → สร้าง notification payload (JSON) ที่เหมาะสมสำหรับ operator/team ระบุรายละเอียด, severity, suggested action, recipient, channel
 
 [INPUT EXPECTED – JSON FIELDS]
-{
+{{
   "events": [
-    {
+    {{
       "agent": "Error/Flag Agent",
       "type": "critical",
       "code": "OVERLAP",
       "message": "พบวิดีโอ pillar ซ้ำใน 24 ชม.",
       "suggested_action": "เลื่อน publish slot วิดีโอหนึ่งไปวันถัดไป"
-    },
-    {
+    }},
+    {{
       "agent": "Legal/Compliance Agent",
       "type": "warning",
       "code": "unverified image license",
       "message": "พบรูปภาพจากเว็บ license ไม่ชัดเจน",
       "suggested_action": "ยืนยันสิทธิ์การใช้งานหรือเปลี่ยนภาพ"
-    },
-    {
+    }},
+    {{
       "agent": "Analytics & Retention Agent",
       "type": "info",
       "code": "top_performer",
       "message": "คลิป V01 สร้างยอดวิวสูงสุดรอบสัปดาห์",
       "suggested_action": "ทบทวนปัจจัยความสำเร็จและต่อยอด"
-    }
+    }}
   ],
-  "notification_context": {
+  "notification_context": {{
     "operator": "natbkgift",
     "channels": ["email", "LINE", "dashboard"],
     "aggregate_window_min": 5
-  }
-}
+  }}
+}}
 
 [NOTIFICATION RULES]
 - critical event → notify operator + admin ทุกช่องทาง
@@ -54,9 +54,9 @@
 - ไม่แจ้งเตือนซ้ำซ้อน
 
 [OUTPUT SCHEMA (STRICT JSON)]
-{
+{{
   "notifications": [
-    {
+    {{
       "event_code": "OVERLAP",
       "severity": "critical",
       "agent": "Scheduling & Publishing Agent",
@@ -64,8 +64,8 @@
       "suggested_action": "เลื่อน publish slot วิดีโอหนึ่งไปวันถัดไป",
       "recipient": ["operator", "admin"],
       "channels": ["email", "LINE", "dashboard"]
-    },
-    {
+    }},
+    {{
       "event_code": "unverified image license",
       "severity": "warning",
       "agent": "Legal/Compliance Agent",
@@ -73,8 +73,8 @@
       "suggested_action": "ยืนยันสิทธิ์การใช้งานหรือเปลี่ยนภาพ",
       "recipient": ["operator", "production"],
       "channels": ["dashboard", "LINE"]
-    },
-    {
+    }},
+    {{
       "event_code": "top_performer",
       "severity": "info",
       "agent": "Analytics & Retention Agent",
@@ -82,17 +82,17 @@
       "suggested_action": "ทบทวนปัจจัยความสำเร็จและต่อยอด",
       "recipient": ["operator"],
       "channels": ["dashboard"]
-    }
+    }}
   ],
-  "meta": {
+  "meta": {{
     "total_notifications": 3,
     "aggregate_window_min": 5,
-    "self_check": {
+    "self_check": {{
       "all_sections_present": true,
       "no_duplicate": true
-    }
-  }
-}
+    }}
+  }}
+}}
 
 [VALIDATION & SELF-CHECK RULES]
 1. all_sections_present: notifications, meta ต้องไม่ว่าง
@@ -102,57 +102,57 @@
 5. ช่องทางต้องถูกต้องตาม severity
 
 [ERROR SCHEMA]
-{
-  "error": {
+{{
+  "error": {{
     "code": "MISSING_DATA | SCHEMA_VIOLATION",
     "message": "รายละเอียด",
     "suggested_fix": "คำแนะนำ"
-  }
-}
+  }}
+}}
 
 [USER RUNTIME TEMPLATE]
 สร้าง notification สำหรับ event เหล่านี้ (JSON):
-Events: {{events_json}}
-NotificationContext: {{notification_context_json}}
+Events: {events_json}
+NotificationContext: {notification_context_json}
 
 ส่งออก JSON ตาม Output Schema เท่านั้น ห้ามมีข้อความอื่นนอก JSON
 
 [ตัวอย่าง input]
-{
+{{
   "events": [
-    {
+    {{
       "agent": "Error/Flag Agent",
       "type": "critical",
       "code": "OVERLAP",
       "message": "พบวิดีโอ pillar ซ้ำใน 24 ชม.",
       "suggested_action": "เลื่อน publish slot วิดีโอหนึ่งไปวันถัดไป"
-    },
-    {
+    }},
+    {{
       "agent": "Legal/Compliance Agent",
       "type": "warning",
       "code": "unverified image license",
       "message": "พบรูปภาพจากเว็บ license ไม่ชัดเจน",
       "suggested_action": "ยืนยันสิทธิ์การใช้งานหรือเปลี่ยนภาพ"
-    },
-    {
+    }},
+    {{
       "agent": "Analytics & Retention Agent",
       "type": "info",
       "code": "top_performer",
       "message": "คลิป V01 สร้างยอดวิวสูงสุดรอบสัปดาห์",
       "suggested_action": "ทบทวนปัจจัยความสำเร็จและต่อยอด"
-    }
+    }}
   ],
-  "notification_context": {
+  "notification_context": {{
     "operator": "natbkgift",
     "channels": ["email", "LINE", "dashboard"],
     "aggregate_window_min": 5
-  }
-}
+  }}
+}}
 
 [ตัวอย่าง output]
-{
+{{
   "notifications": [
-    {
+    {{
       "event_code": "OVERLAP",
       "severity": "critical",
       "agent": "Scheduling & Publishing Agent",
@@ -160,8 +160,8 @@ NotificationContext: {{notification_context_json}}
       "suggested_action": "เลื่อน publish slot วิดีโอหนึ่งไปวันถัดไป",
       "recipient": ["operator", "admin"],
       "channels": ["email", "LINE", "dashboard"]
-    },
-    {
+    }},
+    {{
       "event_code": "unverified image license",
       "severity": "warning",
       "agent": "Legal/Compliance Agent",
@@ -169,8 +169,8 @@ NotificationContext: {{notification_context_json}}
       "suggested_action": "ยืนยันสิทธิ์การใช้งานหรือเปลี่ยนภาพ",
       "recipient": ["operator", "production"],
       "channels": ["dashboard", "LINE"]
-    },
-    {
+    }},
+    {{
       "event_code": "top_performer",
       "severity": "info",
       "agent": "Analytics & Retention Agent",
@@ -178,16 +178,16 @@ NotificationContext: {{notification_context_json}}
       "suggested_action": "ทบทวนปัจจัยความสำเร็จและต่อยอด",
       "recipient": ["operator"],
       "channels": ["dashboard"]
-    }
+    }}
   ],
-  "meta": {
+  "meta": {{
     "total_notifications": 3,
     "aggregate_window_min": 5,
-    "self_check": {
+    "self_check": {{
       "all_sections_present": true,
       "no_duplicate": true
-    }
-  }
-}
+    }}
+  }}
+}}
 
 [END OF PROMPT]
