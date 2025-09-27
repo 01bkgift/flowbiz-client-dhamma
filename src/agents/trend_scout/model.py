@@ -52,7 +52,7 @@ class CompetitorComment(BaseModel):
 
     channel: str = Field(description="ชื่อช่อง")
     comment: str = Field(description="ความคิดเห็น")
-    likes: int = Field(default=0, description="จำนวน likes")
+    likes: int = Field(default=0, ge=0, description="จำนวน likes")
 
     @field_validator("likes")
     def validate_likes(cls, value: int) -> int:
