@@ -42,7 +42,9 @@ def _build_input(**overrides):
             },
         },
     )
-    return MultiChannelPublishInput(publish_request=base_request.model_copy(update=overrides))
+    return MultiChannelPublishInput(
+        publish_request=base_request.model_copy(update=overrides)
+    )
 
 
 def test_agent_returns_ready_payload_for_complete_request():
@@ -50,7 +52,9 @@ def test_agent_returns_ready_payload_for_complete_request():
     result = agent.run(_build_input())
 
     assert len(result.multi_channel_publish_payload) == 3
-    assert all(payload.status == "ready" for payload in result.multi_channel_publish_payload)
+    assert all(
+        payload.status == "ready" for payload in result.multi_channel_publish_payload
+    )
     assert not result.warnings
     assert not result.errors
     assert all(
@@ -58,7 +62,9 @@ def test_agent_returns_ready_payload_for_complete_request():
         for log in result.multi_channel_publish_log
     )
     # Ensure timestamps are datetime and close to now
-    assert all(isinstance(log.timestamp, datetime) for log in result.multi_channel_publish_log)
+    assert all(
+        isinstance(log.timestamp, datetime) for log in result.multi_channel_publish_log
+    )
 
 
 def test_agent_flags_missing_vertical_video_for_tiktok():
@@ -73,11 +79,15 @@ def test_agent_flags_missing_vertical_video_for_tiktok():
     result = agent.run(input_data)
 
     tiktok_payload = next(
-        payload for payload in result.multi_channel_publish_payload if payload.channel == "TikTok"
+        payload
+        for payload in result.multi_channel_publish_payload
+        if payload.channel == "TikTok"
     )
     assert tiktok_payload.status == "missing_data"
     assert "เตรียมไฟล์วิดีโอแนวตั้งสำหรับ TikTok" in tiktok_payload.suggestion
-    assert any("TikTok payload missing fields" in warning for warning in result.warnings)
+    assert any(
+        "TikTok payload missing fields" in warning for warning in result.warnings
+    )
     assert any(log.status == "warning" for log in result.multi_channel_publish_log)
 
 
@@ -99,8 +109,13 @@ def test_agent_marks_unknown_channel_as_error():
     result = agent.run(input_data)
 
     error_payload = next(
-        payload for payload in result.multi_channel_publish_payload if payload.channel == "MySpace"
+        payload
+        for payload in result.multi_channel_publish_payload
+        if payload.channel == "MySpace"
     )
     assert error_payload.status == "error"
     assert result.errors
-    assert any(log.channel == "MySpace" and log.status == "failed" for log in result.multi_channel_publish_log)
+    assert any(
+        log.channel == "MySpace" and log.status == "failed"
+        for log in result.multi_channel_publish_log
+    )

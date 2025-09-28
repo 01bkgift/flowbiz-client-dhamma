@@ -64,13 +64,13 @@ class MultiChannelPublishAgent(
                 )
                 continue
 
-            mapped_data, suggestions, missing_fields = self._map_channel(channel, request)
+            mapped_data, suggestions, missing_fields = self._map_channel(
+                channel, request
+            )
 
             if missing_fields:
                 status = "missing_data"
-                message = (
-                    f"{channel} payload missing fields: {', '.join(sorted(missing_fields))}"
-                )
+                message = f"{channel} payload missing fields: {', '.join(sorted(missing_fields))}"
                 warnings.append(message)
                 log_status = "warning"
                 event = "mapping_missing_data"
