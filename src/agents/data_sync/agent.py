@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Dict, List
+from datetime import UTC, datetime
 
 from automation_core.base_agent import BaseAgent
 
@@ -26,7 +25,7 @@ class DataSyncAgent(BaseAgent[DataSyncRequest, DataSyncResponse]):
         )
 
         # registry ของ schema เวอร์ชันต่างๆ และฟิลด์ที่คาดหวัง
-        self.schema_registry: Dict[str, List[str]] = {
+        self.schema_registry: dict[str, list[str]] = {
             "v2.1": [
                 "video_id",
                 "title",
@@ -43,7 +42,7 @@ class DataSyncAgent(BaseAgent[DataSyncRequest, DataSyncResponse]):
         }
 
     def run(self, input_data: DataSyncRequest) -> DataSyncResponse:
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(UTC)
         logs: list[DataSyncLogEntry] = []
         warnings: list[str] = []
         errors: list[str] = []

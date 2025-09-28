@@ -13,18 +13,18 @@ from agents.data_sync import DataSyncAgent, DataSyncRequest, SyncData, SyncRule
 def build_request(**overrides) -> DataSyncRequest:
     """สร้าง DataSyncRequest สำหรับใช้งานในเทสต์"""
 
-    base = dict(
-        source_system="YouTube Analytics",
-        target_system="Google Drive",
-        sync_type="copy",
-        data=SyncData(
+    base = {
+        "source_system": "YouTube Analytics",
+        "target_system": "Google Drive",
+        "sync_type": "copy",
+        "data": SyncData(
             file_name="analytics_2025-09-27.csv",
             schema_version="v2.1",
             fields=["video_id", "title", "views", "ctr_pct", "retention_pct"],
             row_count=134,
         ),
-        rule=SyncRule(overwrite_if_exists=True, validate_schema=True),
-    )
+        "rule": SyncRule(overwrite_if_exists=True, validate_schema=True),
+    }
     base.update(overrides)
     return DataSyncRequest(**base)
 

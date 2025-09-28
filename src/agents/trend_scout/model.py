@@ -80,13 +80,19 @@ class TrendScoutInput(BaseModel):
         default_factory=list, description="กลุ่มคำที่คล้ายกัน"
     )
 
+    @field_validator("keywords")
+    def validate_keywords(cls, value: list[str]) -> list[str]:
+        if not value:
+            raise ValueError("ต้องมีคำสำคัญอย่างน้อย 1 คำ")
+        return value
+
 
 class TopicScore(BaseModel):
     """คะแนนของหัวข้อในแต่ละมิติ"""
 
-    search_intent: float = Field(description="ความตั้งใจค้นหา")
-    freshness: float = Field(description="ความใหม่")
-    evergreen: float = Field(description="ความคงทน")
+    search_intent: float = Field(ge=0, le=1, description="ความตั้งใจค้นหา")
+    freshness: float = Field(ge=0, le=1, description="ความใหม่")
+    evergreen: float = Field(ge=0, le=1, description="ความคงทน")
     brand_fit: float = Field(ge=0, le=1, description="ความเข้ากับแบรนด์")
     composite: float = Field(ge=0, le=1, description="คะแนนรวม")
 
@@ -111,6 +117,24 @@ class TopicEntry(BaseModel):
     raw_keywords: list[str] = Field(description="คำสำคัญต้นฉบับ")
     similar_to: list[str] = Field(default_factory=list, description="คล้ายกับหัวข้ือื่น")
     risk_flags: list[str] = Field(default_factory=list, description="ธงเตือนความเสี่ยง")
+
+    @field_validator("rank")
+    def validate_rank(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("อันดับต้องเป็นจำนวนเต็มบวก")
+        return value
+
+    @field_validator("predicted_14d_views")
+    def validate_predicted_views(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("การดูคาดการณ์ต้องไม่เป็นลบ")
+        return value
+
+    @field_validator("title")
+    def validate_title_length(cls, value: str) -> str:
+        if len(value) > 34:
+            raise ValueError("ชื่อหัวข้อยาวเกิน 34 ตัวอักษร")
+        return value
 
 
 class SelfCheck(BaseModel):
@@ -150,6 +174,8 @@ class TrendScoutOutput(BaseModel):
 
     @field_validator("topics")
     def validate_topics(cls, value: list["TopicEntry"]) -> list["TopicEntry"]:  # noqa: F821 (forward reference)
+        if len(value) > 15:
+            raise ValueError("จำนวนหัวข้อต้องไม่เกิน 15 หัวข้อ")
         if len(value) > 1:
             scores = [topic.scores.composite for topic in value]
             if scores != sorted(scores, reverse=True):
