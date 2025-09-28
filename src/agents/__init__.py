@@ -1,5 +1,7 @@
 """agents - โมดูลรวม AI Agents ทั้งหมด"""
 
+# ruff: noqa: I001
+
 from .data_sync import (
     DataSyncAgent,
     DataSyncLogEntry,
@@ -11,19 +13,11 @@ from .data_sync import (
 )
 from .error_flag import (
     AgentError as ErrorFlagAgentError,
-)
-from .error_flag import (
     AgentLog as ErrorFlagAgentLog,
-)
-from .error_flag import (
     CriticalItem as ErrorFlagCriticalItem,
-)
-from .error_flag import (
     ErrorFlagAgent,
     ErrorFlagInput,
     ErrorFlagOutput,
-)
-from .error_flag import (
     WarningItem as ErrorFlagWarningItem,
 )
 from .localization_subtitle.agent import LocalizationSubtitleAgent
@@ -35,18 +29,26 @@ from .localization_subtitle.model import (
 )
 from .multi_channel_publish import (
     ChannelPublishPayload as MultiChannelPublishChannelPayload,
-)
-from .multi_channel_publish import (
     MultiChannelPublishAgent,
     MultiChannelPublishInput,
     MultiChannelPublishLogEntry,
     MultiChannelPublishOutput,
-)
-from .multi_channel_publish import (
     PublishAssets as MultiChannelPublishAssets,
-)
-from .multi_channel_publish import (
     PublishRequest as MultiChannelPublishRequest,
+)
+from .personalization import (
+    EngagementMetrics as PersonalizationEngagementMetrics,
+    PersonalizedRecommendation,
+    PersonalizationAgent,
+    PersonalizationConfig,
+    PersonalizationInput,
+    PersonalizationMeta,
+    PersonalizationOutput,
+    PersonalizationRequest,
+    RecommendationItem as PersonalizationRecommendationItem,
+    TrendInterest as PersonalizationTrendInterest,
+    UserProfile as PersonalizationUserProfile,
+    ViewHistoryItem as PersonalizationViewHistoryItem,
 )
 from .research_retrieval.agent import ResearchRetrievalAgent
 from .research_retrieval.model import ResearchRetrievalInput, ResearchRetrievalOutput
@@ -89,6 +91,18 @@ __all__ = [
     "ScriptOutlineAgent",
     "ScriptOutlineInput",
     "ScriptOutlineOutput",
+    "PersonalizationAgent",
+    "PersonalizationInput",
+    "PersonalizationOutput",
+    "PersonalizationRequest",
+    "PersonalizedRecommendation",
+    "PersonalizationMeta",
+    "PersonalizationConfig",
+    "PersonalizationTrendInterest",
+    "PersonalizationUserProfile",
+    "PersonalizationViewHistoryItem",
+    "PersonalizationEngagementMetrics",
+    "PersonalizationRecommendationItem",
     "ScriptWriterAgent",
     "ScriptWriterInput",
     "ScriptWriterOutput",
