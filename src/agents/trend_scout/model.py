@@ -30,21 +30,9 @@ class YTTrendingItem(BaseModel):
     """ข้อมูลวิดีโอที่กำลังเทรนด์ใน YouTube"""
 
     title: str = Field(description="ชื่อวิดีโอ")
-    views_est: int = Field(description="จำนวนการดูโดยประมาณ")
-    age_days: int = Field(description="อายุของวิดีโอ (วัน)")
-    keywords: list[str] = Field(default_factory=list, description="คำสำคัญที่สกัดได้")
-
-    @field_validator("views_est")
-    def validate_views(cls, value: int) -> int:
-        if value < 0:
-            raise ValueError("จำนวนการดูต้องไม่เป็นลบ")
-        return value
-
-    @field_validator("age_days")
-    def validate_age(cls, value: int) -> int:
-        if value < 0:
-            raise ValueError("อายุวิดีโอต้องไม่เป็นลบ")
-        return value
+    views_est: int = Field(ge=0, description="จำนวนการดูโดยประมาณ")
+    age_days: int = Field(ge=0, description="อายุของวิดีโอ (วัน)")
+    keywords: list[str] = Field(..., min_length=1, description="คำสำคัญที่สกัดได้")
 
 
 class CompetitorComment(BaseModel):
@@ -52,7 +40,7 @@ class CompetitorComment(BaseModel):
 
     channel: str = Field(description="ชื่อช่อง")
     comment: str = Field(description="ความคิดเห็น")
-    likes: int = Field(default=0, description="จำนวน likes")
+    likes: int = Field(default=0, ge=0, description="จำนวน likes")
 
     @field_validator("likes")
     def validate_likes(cls, value: int) -> int:
@@ -66,7 +54,7 @@ class EmbeddingSimilarGroup(BaseModel):
 
     group_id: str = Field(description="ID ของกลุ่ม")
     keywords: list[str] = Field(description="คำในกลุ่ม")
-    similarity_score: float = Field(description="คะแนนความคล้าย")
+    similarity_score: float = Field(ge=0, le=1, description="คะแนนความคล้าย")
 
     @field_validator("similarity_score")
     def validate_similarity(cls, value: float) -> float:
@@ -78,7 +66,7 @@ class EmbeddingSimilarGroup(BaseModel):
 class TrendScoutInput(BaseModel):
     """Input สำหรับ TrendScoutAgent"""
 
-    keywords: list[str] = Field(description="คำสำคัญที่ต้องการวิเคราะห์")
+    keywords: list[str] = Field(..., min_length=1, description="คำสำคัญที่ต้องการวิเคราะห์")
     google_trends: list[GoogleTrendItem] = Field(
         default_factory=list, description="ข้อมูลเทรนด์จาก Google"
     )
@@ -102,11 +90,11 @@ class TrendScoutInput(BaseModel):
 class TopicScore(BaseModel):
     """คะแนนของหัวข้อในแต่ละมิติ"""
 
-    search_intent: float = Field(description="ความตั้งใจค้นหา")
-    freshness: float = Field(description="ความใหม่")
-    evergreen: float = Field(description="ความคงทน")
-    brand_fit: float = Field(description="ความเข้ากับแบรนด์")
-    composite: float = Field(description="คะแนนรวม")
+    search_intent: float = Field(ge=0, le=1, description="ความตั้งใจค้นหา")
+    freshness: float = Field(ge=0, le=1, description="ความใหม่")
+    evergreen: float = Field(ge=0, le=1, description="ความคงทน")
+    brand_fit: float = Field(ge=0, le=1, description="ความเข้ากับแบรนด์")
+    composite: float = Field(ge=0, le=1, description="คะแนนรวม")
 
     @field_validator(
         "search_intent", "freshness", "evergreen", "brand_fit", "composite"
@@ -120,10 +108,10 @@ class TopicScore(BaseModel):
 class TopicEntry(BaseModel):
     """หัวข้อคอนเทนต์ที่แนะนำ"""
 
-    rank: int = Field(description="อันดับ")
-    title: str = Field(description="ชื่อหัวข้อ")
+    rank: int = Field(ge=1, description="อันดับ")
+    title: str = Field(max_length=34, description="ชื่อหัวข้อ")
     pillar: str = Field(description="เสาหลักของเนื้อหา")
-    predicted_14d_views: int = Field(description="การดูคาดการณ์ 14 วัน")
+    predicted_14d_views: int = Field(ge=0, description="การดูคาดการณ์ 14 วัน")
     scores: TopicScore = Field(description="คะแนนในแต่ละมิติ")
     reason: str = Field(description="เหตุผลที่แนะนำ")
     raw_keywords: list[str] = Field(description="คำสำคัญต้นฉบับ")
@@ -178,7 +166,7 @@ class TrendScoutOutput(BaseModel):
     generated_at: datetime = Field(
         default_factory=datetime.now, description="เวลาที่สร้างผลลัพธ์"
     )
-    topics: list[TopicEntry] = Field(description="หัวข้อที่แนะนำ")
+    topics: list[TopicEntry] = Field(max_length=15, description="หัวข้อที่แนะนำ")
     discarded_duplicates: list[DiscardedDuplicate] = Field(
         default_factory=list, description="หัวข้อที่ถูกตัดออกเพราะซ้ำ"
     )
