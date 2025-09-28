@@ -16,16 +16,16 @@ from .model import (
 )
 
 __all__ = [
+    "EngagementMetrics",
     "PersonalizationAgent",
+    "PersonalizationConfig",
     "PersonalizationInput",
+    "PersonalizationMeta",
     "PersonalizationOutput",
     "PersonalizationRequest",
     "PersonalizedRecommendation",
     "RecommendationItem",
-    "PersonalizationMeta",
-    "PersonalizationConfig",
     "TrendInterest",
     "UserProfile",
     "ViewHistoryItem",
-    "EngagementMetrics",
 ]
