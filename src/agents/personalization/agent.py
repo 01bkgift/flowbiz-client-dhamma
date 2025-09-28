@@ -283,7 +283,7 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
         avg_watch: float | None,
     ) -> list[_Candidate]:
         candidates: list[_Candidate] = []
-        for interest in request.profile.interest:
+        for interest in request.profile.interest or list(trend_lookup.keys()):
             entries = self.TOPIC_LIBRARY.get(interest, [])
             for entry in entries:
                 base_conf = float(entry.get("base_conf", 65.0))
