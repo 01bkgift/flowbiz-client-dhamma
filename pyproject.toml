@@ -61,6 +61,9 @@ include = ["src*", "cli*", "automation_core*", "agents*"]
 "automation_core" = "src/automation_core"
 "agents" = "src/agents"
 
+[tool.setuptools.package-data]
+"agents.personalization" = ["personalization_data.json"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 88
@@ -101,6 +104,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+pythonpath = ["src"]
 addopts = [
     "--strict-markers",
     "--strict-config",

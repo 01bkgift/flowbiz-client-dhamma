@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import json
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
+from importlib import resources
 from statistics import mean
 from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
 
 from automation_core.base_agent import BaseAgent
 
@@ -35,112 +39,75 @@ class _Candidate:
     payload: dict
 
 
+class VideoLibraryItem(BaseModel):
+    """วิดีโอที่ใช้สำหรับคำแนะนำหลัก"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    video_id: str
+    title: str
+    base_conf: float
+    angle: str | None = None
+
+
+class TopicLibraryItem(BaseModel):
+    """หัวข้อที่นำเสนอในรูปแบบเนื้อหา"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    topic: str
+    base_conf: float
+    insight: str | None = None
+
+
+class FeatureLibraryItem(BaseModel):
+    """ฟีเจอร์หรือแคมเปญเสริมการมีส่วนร่วม"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    feature: str
+    base_conf: float
+    insight: str | None = None
+
+
+class PersonalizationLibrary(BaseModel):
+    """ข้อมูลทั้งหมดที่ใช้ประกอบการแนะนำ"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    video_library: dict[str, list[VideoLibraryItem]]
+    topic_library: dict[str, list[TopicLibraryItem]]
+    feature_library: dict[str, list[FeatureLibraryItem]]
+    fallback_video: VideoLibraryItem
+    fallback_topic: TopicLibraryItem
+    fallback_feature: FeatureLibraryItem
+
+
+def _load_library_data() -> PersonalizationLibrary:
+    data_path = resources.files(__package__).joinpath("personalization_data.json")
+    with data_path.open(encoding="utf-8") as file:
+        data = json.load(file)
+    return PersonalizationLibrary.model_validate(data)
+
+
+_LIBRARY_DATA = _load_library_data()
+_VIDEO_LIBRARY = _LIBRARY_DATA.video_library
+_TOPIC_LIBRARY = _LIBRARY_DATA.topic_library
+_FEATURE_LIBRARY = _LIBRARY_DATA.feature_library
+_FALLBACK_VIDEO = _LIBRARY_DATA.fallback_video
+_FALLBACK_TOPIC = _LIBRARY_DATA.fallback_topic
+_FALLBACK_FEATURE = _LIBRARY_DATA.fallback_feature
+
+
 class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput]):
     """Agent สำหรับสร้างคำแนะนำคอนเทนต์เฉพาะบุคคล"""
 
-    VIDEO_LIBRARY: dict[str, list[dict[str, object]]] = {
-        "นอนหลับ": [
-            {
-                "video_id": "V05",
-                "title": "สมาธิก่อนนอน",
-                "base_conf": 82.0,
-                "angle": "ผ่อนคลายก่อนเข้านอน",
-            },
-            {
-                "video_id": "V15",
-                "title": "ปล่อยใจเบาก่อนหลับ",
-                "base_conf": 76.0,
-                "angle": "ปล่อยวางความคิดฟุ้งซ่าน",
-            },
-        ],
-        "สมาธิ": [
-            {
-                "video_id": "V07",
-                "title": "ฝึกสมาธิ 10 นาที",
-                "base_conf": 78.0,
-                "angle": "ฝึกสั้นๆ ทำได้ทุกวัน",
-            },
-            {
-                "video_id": "V18",
-                "title": "สมาธิเพื่อใจนิ่ง",
-                "base_conf": 74.0,
-                "angle": "เสริมวินัยและสติ",
-            },
-        ],
-        "สุขภาพจิต": [
-            {
-                "video_id": "V22",
-                "title": "ดูแลใจในวันที่เหนื่อย",
-                "base_conf": 75.0,
-                "angle": "ฟื้นแรงใจ",
-            }
-        ],
-    }
-
-    TOPIC_LIBRARY: dict[str, list[dict[str, object]]] = {
-        "นอนหลับ": [
-            {
-                "topic": "Mindfulness สำหรับการนอน",
-                "base_conf": 74.0,
-                "insight": "เทรนด์การนอนหลับสูงและผู้ใช้สนใจ",
-            }
-        ],
-        "สมาธิ": [
-            {
-                "topic": "คอร์สสมาธิ 7 วัน",
-                "base_conf": 72.0,
-                "insight": "ผู้ใช้ดูคอนเทนต์สมาธิจบเกิน 90%",
-            }
-        ],
-        "สุขภาพจิต": [
-            {
-                "topic": "จัดการความเครียดในชีวิตประจำวัน",
-                "base_conf": 70.0,
-                "insight": "โปรไฟล์สนใจสุขภาพจิต",
-            }
-        ],
-    }
-
-    FEATURE_LIBRARY: dict[str, list[dict[str, object]]] = {
-        "นอนหลับ": [
-            {
-                "feature": "playlist สมาธิก่อนนอน",
-                "base_conf": 68.0,
-                "insight": "ช่วยให้ผู้ใช้ฟังต่อเนื่อง",
-            }
-        ],
-        "สมาธิ": [
-            {
-                "feature": "แจ้งเตือนฝึกสมาธิทุกเช้า",
-                "base_conf": 66.0,
-                "insight": "รักษาความสม่ำเสมอในการฝึก",
-            }
-        ],
-        "สุขภาพจิต": [
-            {
-                "feature": "คอมมิวนิตี้แชร์ประสบการณ์",
-                "base_conf": 64.0,
-                "insight": "เปิดพื้นที่พูดคุยสุขภาพใจ",
-            }
-        ],
-    }
-
-    FALLBACK_VIDEO = {
-        "video_id": "GEN01",
-        "title": "ผ่อนคลายใจเบื้องต้น",
-        "base_conf": 68.0,
-        "angle": "ดูแลใจสำหรับทุกคน",
-    }
-    FALLBACK_TOPIC = {
-        "topic": "ดูแลใจและสมาธิพื้นฐาน",
-        "base_conf": 68.0,
-        "insight": "หัวข้อกว้างที่ตอบโจทย์ผู้ชมส่วนใหญ่",
-    }
-    FALLBACK_FEATURE = {
-        "feature": "playlist รวมธรรมะฟังสั้น",
-        "base_conf": 65.0,
-        "insight": "เพิ่มเวลาการรับชม",
-    }
+    VIDEO_LIBRARY: dict[str, list[VideoLibraryItem]] = _VIDEO_LIBRARY
+    TOPIC_LIBRARY: dict[str, list[TopicLibraryItem]] = _TOPIC_LIBRARY
+    FEATURE_LIBRARY: dict[str, list[FeatureLibraryItem]] = _FEATURE_LIBRARY
+    FALLBACK_VIDEO = _FALLBACK_VIDEO
+    FALLBACK_TOPIC = _FALLBACK_TOPIC
+    FALLBACK_FEATURE = _FALLBACK_FEATURE
 
     RECENT_VIEW_THRESHOLD = 14
     COMPLETION_THRESHOLD = 90.0
@@ -222,10 +189,10 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
             if not entries:
                 continue
             for entry in entries:
-                video_id = str(entry["video_id"])
+                video_id = entry.video_id
                 if video_id in recent_watched:
                     continue
-                base_conf = float(entry.get("base_conf", 65.0))
+                base_conf = entry.base_conf
                 confidence = self._apply_boosts(
                     base_conf,
                     trend_lookup.get(interest, 0.0),
@@ -239,9 +206,9 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
                     reason_parts.append(f"เทรนด์คะแนน {trend_lookup[interest]:.0f}")
                 if avg_watch is not None and avg_watch >= 80:
                     reason_parts.append(f"Retention เฉลี่ย {avg_watch:.0f}%")
-                angle = entry.get("angle")
+                angle = entry.angle
                 if angle:
-                    reason_parts.append(str(angle))
+                    reason_parts.append(angle)
                 reason = ", ".join(reason_parts)
                 candidates.append(
                     _Candidate(
@@ -250,27 +217,30 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
                         reason=reason,
                         payload={
                             "video_id": video_id,
-                            "title": str(entry["title"]),
+                            "title": entry.title,
                         },
                     )
                 )
 
         if not candidates:
             fallback_conf = self._apply_boosts(
-                float(self.FALLBACK_VIDEO["base_conf"]),
+                self.FALLBACK_VIDEO.base_conf,
                 0.0,
                 avg_watch,
                 request.engagement,
             )
-            reason = "คำแนะนำมาตรฐานสำหรับผู้ชมใหม่"
+            reason_parts = ["คำแนะนำมาตรฐานสำหรับผู้ชมใหม่"]
+            if self.FALLBACK_VIDEO.angle:
+                reason_parts.append(self.FALLBACK_VIDEO.angle)
+            reason = ", ".join(reason_parts)
             candidates.append(
                 _Candidate(
                     type="video",
                     confidence=fallback_conf,
                     reason=reason,
                     payload={
-                        "video_id": str(self.FALLBACK_VIDEO["video_id"]),
-                        "title": str(self.FALLBACK_VIDEO["title"]),
+                        "video_id": self.FALLBACK_VIDEO.video_id,
+                        "title": self.FALLBACK_VIDEO.title,
                     },
                 )
             )
@@ -286,14 +256,14 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
         for interest in request.profile.interest or list(trend_lookup.keys()):
             entries = self.TOPIC_LIBRARY.get(interest, [])
             for entry in entries:
-                base_conf = float(entry.get("base_conf", 65.0))
+                base_conf = entry.base_conf
                 confidence = self._apply_boosts(
                     base_conf,
                     trend_lookup.get(interest, 0.0),
                     avg_watch,
                     request.engagement,
                 )
-                reason_parts = [str(entry.get("insight", ""))]
+                reason_parts = [entry.insight or ""]
                 if trend_lookup.get(interest):
                     reason_parts.append(f"เทรนด์ {trend_lookup[interest]:.0f} คะแนน")
                 reason = ", ".join(part for part in reason_parts if part)
@@ -302,13 +272,13 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
                         type="topic",
                         confidence=confidence,
                         reason=reason or f"เกี่ยวข้องกับความสนใจ '{interest}'",
-                        payload={"topic": str(entry["topic"])},
-                    )
+                        payload={"topic": entry.topic},
+                    ),
                 )
 
         if not candidates:
             confidence = self._apply_boosts(
-                float(self.FALLBACK_TOPIC["base_conf"]),
+                self.FALLBACK_TOPIC.base_conf,
                 0.0,
                 avg_watch,
                 request.engagement,
@@ -317,9 +287,9 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
                 _Candidate(
                     type="topic",
                     confidence=confidence,
-                    reason=str(self.FALLBACK_TOPIC["insight"]),
-                    payload={"topic": str(self.FALLBACK_TOPIC["topic"])},
-                )
+                    reason=self.FALLBACK_TOPIC.insight or "หัวข้อแนะนำสำหรับทุกคน",
+                    payload={"topic": self.FALLBACK_TOPIC.topic},
+                ),
             )
         return candidates
 
@@ -332,26 +302,26 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
         for interest in request.profile.interest or list(trend_lookup.keys()):
             entries = self.FEATURE_LIBRARY.get(interest, [])
             for entry in entries:
-                base_conf = float(entry.get("base_conf", 60.0))
+                base_conf = entry.base_conf
                 confidence = self._apply_boosts(
                     base_conf,
                     trend_lookup.get(interest, 0.0),
                     None,
                     request.engagement,
                 )
-                reason = str(entry.get("insight", "")) or "สนับสนุนการมีส่วนร่วม"
+                reason = entry.insight or "สนับสนุนการมีส่วนร่วม"
                 candidates.append(
                     _Candidate(
                         type="feature",
                         confidence=confidence,
                         reason=reason,
-                        payload={"feature": str(entry["feature"])},
-                    )
+                        payload={"feature": entry.feature},
+                    ),
                 )
 
         if not candidates:
             confidence = self._apply_boosts(
-                float(self.FALLBACK_FEATURE["base_conf"]),
+                self.FALLBACK_FEATURE.base_conf,
                 0.0,
                 None,
                 request.engagement,
@@ -360,9 +330,9 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
                 _Candidate(
                     type="feature",
                     confidence=confidence,
-                    reason=str(self.FALLBACK_FEATURE["insight"]),
-                    payload={"feature": str(self.FALLBACK_FEATURE["feature"])},
-                )
+                    reason=self.FALLBACK_FEATURE.insight or "ฟีเจอร์แนะนำ",
+                    payload={"feature": self.FALLBACK_FEATURE.feature},
+                ),
             )
         return candidates
 
@@ -485,12 +455,11 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
         self,
         recommendations: list[RecommendationItem],
         config: PersonalizationConfig,
-        view_history: Iterable[ViewHistoryItem],
+        view_history: Collection[ViewHistoryItem],
         engagement: EngagementMetrics,
         avg_watch: float | None,
     ) -> list[str]:
         alerts: list[str] = []
-        history_list = list(view_history)
         for item in recommendations:
             if item.confidence_pct < config.min_confidence_pct:
                 alerts.append(
@@ -498,7 +467,7 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
                 )
         if avg_watch is not None and avg_watch < 40:
             alerts.append("ผู้ใช้มี retention ต่ำกว่า 40% ต่อเนื่อง")
-        if engagement.total < 2 and len(history_list) >= 2:
+        if engagement.total < 2 and len(view_history) >= 2:
             alerts.append("engagement ต่ำ เสี่ยง disengaged")
         return alerts
 

@@ -1,12 +1,7 @@
 """Tests for PersonalizationAgent"""
 
-import sys
 from datetime import date, timedelta
-from pathlib import Path
 from unittest.mock import patch
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from agents.personalization import (  # noqa: E402
     EngagementMetrics,
