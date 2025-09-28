@@ -329,7 +329,7 @@ class PersonalizationAgent(BaseAgent[PersonalizationInput, PersonalizationOutput
         trend_lookup: dict[str, float],
     ) -> list[_Candidate]:
         candidates: list[_Candidate] = []
-        for interest in request.profile.interest:
+        for interest in request.profile.interest or list(trend_lookup.keys()):
             entries = self.FEATURE_LIBRARY.get(interest, [])
             for entry in entries:
                 base_conf = float(entry.get("base_conf", 60.0))
