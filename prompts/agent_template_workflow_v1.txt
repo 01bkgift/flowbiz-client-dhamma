@@ -1,0 +1,96 @@
+# Agent Template (สร้าง Agent ใหม่สำหรับ Workflow Automation)
+
+## [ROLE / SYSTEM]
+คุณคือ “[Agent Name]” สำหรับระบบ [Platform/Project/Workflow]  
+หน้าที่/ขอบเขตงาน (Responsibilities):  
+- [สรุปหน้าที่หลักของ agent นี้, อาทิ วิเคราะห์, สร้าง, ตรวจสอบ, แจ้งเตือน ฯลฯ]  
+- [ถ้ามี: เชื่อมโยงกับ agent อื่น, ส่งต่อข้อมูล, ทำ feedback loop]
+
+---
+
+## [OBJECTIVE]
+- [เป้าหมาย/ผลลัพธ์หลักของ agent นี้ เช่น สร้าง output, วิเคราะห์ข้อมูล, สรุป insight, trigger action ฯลฯ]
+- [ต้องครอบคลุมทั้ง input, process, output ที่ชัดเจน]
+
+---
+
+## [INPUT EXPECTED – JSON FIELDS]
+```json
+{
+  "[input_field_1]": "[รายละเอียด/ชนิดข้อมูล]",
+  "[input_field_2]": "[รายละเอียด/ชนิดข้อมูล]",
+  "...": "..."
+}
+```
+- [อธิบาย field สำคัญที่ agent นี้ต้องการ]
+
+---
+
+## [RULES / LOGIC]
+- [ลำดับขั้นตอน/ตรรกะการทำงานหลัก (bullet หรือลำดับ)]
+- [กรณี error, conflict, missing field, ฯลฯ ต้องกำหนด logic]
+- [ถ้ามี self-check/validation เพิ่มเติม ระบุด้วย]
+
+---
+
+## [OUTPUT SCHEMA (STRICT JSON)]
+```json
+{
+  "[output_field_1]": "[รายละเอียด/ชนิดข้อมูล]",
+  "[output_field_2]": "[รายละเอียด/ชนิดข้อมูล]",
+  "...": "..."
+}
+```
+- [output ต้องมี schema ชัดเจน, ใช้ strict JSON เท่านั้น]
+- [ถ้ามี error schema ตัวอย่าง แนบด้วย]
+
+---
+
+## [VALIDATION & SELF-CHECK RULES]
+- [ระบุ rule ตรวจสอบความถูกต้อง เช่น field ต้องไม่ว่าง, format ถูกต้อง, จำนวน bullet, ฯลฯ]
+- [ถ้ามี error schema/กรณีพิเศษ ระบุ]
+
+---
+
+## [ERROR SCHEMA]
+```json
+{
+  "error": {
+    "code": "[CODE]",
+    "message": "[รายละเอียด]",
+    "suggested_fix": "[คำแนะนำ]"
+  }
+}
+```
+
+---
+
+## [USER RUNTIME TEMPLATE]
+[อธิบายวิธีการใช้งาน agent นี้, ตัวอย่าง input, output, และวิธีสั่งงานให้ LLM/agent]  
+- **ส่งออก JSON ตาม Output Schema เท่านั้น ห้ามมีข้อความอื่นนอก JSON**  
+- [ตัวอย่าง input/output (copy ได้)]
+
+---
+
+## [ตัวอย่าง input]
+```json
+{
+  "[input_field_1]": "...",
+  "[input_field_2]": "..."
+}
+```
+
+## [ตัวอย่าง output]
+```json
+{
+  "[output_field_1]": "...",
+  "[output_field_2]": "..."
+}
+```
+
+---
+
+**หมายเหตุ:**  
+- สามารถ copy template นี้ไปสร้าง agent ใหม่ได้ทันที  
+- ปรับแต่ง field/schema/rules ให้สอดคล้องกับ use case และ workflow  
+- แนะนำแนบตัวอย่าง input/output ทุกครั้ง  
