@@ -32,6 +32,7 @@ def run_cmd(cmd, cwd=None, env=None, log_file=None):
     dur = time.time() - start
     return rc, dur, lines
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pipeline", required=True, help="path to pipeline yaml")
@@ -71,21 +72,26 @@ def main():
             print(f"==> RUN [{name}]")
             rc, dur, _ = run_cmd(cmd, cwd=cwd, env=env, log_file=lf)
             status = "success" if rc == 0 else "error"
-            summary["steps"].append({
-                "id": name,
-                "cmd": cmd,
-                "rc": rc,
-                "status": status,
-                "duration_sec": round(dur, 2),
-                "log_file": str(log_path),
-            })
+            summary["steps"].append(
+                {
+                    "id": name,
+                    "cmd": cmd,
+                    "rc": rc,
+                    "status": status,
+                    "duration_sec": round(dur, 2),
+                    "log_file": str(log_path),
+                }
+            )
             if rc != 0 and step.get("continue_on_error") is not True:
                 print(f"[STOP] step {name} failed rc={rc}")
                 break
 
     summary["ended_at"] = datetime.utcnow().isoformat() + "Z"
-    (out_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[DONE] run_id={run_id} summary={out_dir/'summary.json'}")
+    (out_dir / "summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    print(f"[DONE] run_id={run_id} summary={out_dir / 'summary.json'}")
+
 
 if __name__ == "__main__":
     main()

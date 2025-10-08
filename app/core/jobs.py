@@ -12,8 +12,7 @@ class JobManager:
 
     async def start(self, agent_key: str) -> PROCESS_JOB_TYPE:
         job = self.get(agent_key)
-        loop = asyncio.get_running_loop()
-        loop.create_task(job.start())
+        asyncio.create_task(job.start())
         return job
 
     def pause(self, agent_key: str):
@@ -27,5 +26,6 @@ class JobManager:
 
     def reset(self, agent_key: str):
         self.get(agent_key).reset()
+
 
 JOB_MANAGER = JobManager()

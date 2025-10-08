@@ -7,6 +7,7 @@ import httpx
 
 BASE_URL = "http://127.0.0.1:8001"
 
+
 def wait_ready(timeout=20):
     t0 = time.time()
     while time.time() - t0 < timeout:
@@ -19,16 +20,23 @@ def wait_ready(timeout=20):
         time.sleep(0.5)
     return False
 
+
 def main():
     cmd = [
         os.getenv("PYTHON_BIN") or "python",
-        "-m", "uvicorn",
+        "-m",
+        "uvicorn",
         "app.main:app",
-        "--host", "127.0.0.1",
-        "--port", "8001",
-        "--log-level", "warning",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001",
+        "--log-level",
+        "warning",
     ]
-    server = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    server = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+    )
 
     try:
         if not wait_ready():
@@ -63,7 +71,9 @@ def main():
             ok = False
 
         pipelines_dir = Path("output/pipelines")
-        has_summary = any((p / "summary.json").exists() for p in pipelines_dir.glob("*"))
+        has_summary = any(
+            (p / "summary.json").exists() for p in pipelines_dir.glob("*")
+        )
         if not has_summary:
             print("Missing pipeline summary under output/pipelines/*/summary.json")
             ok = False
@@ -77,6 +87,7 @@ def main():
             server.terminate()
         except Exception:
             pass
+
 
 if __name__ == "__main__":
     main()

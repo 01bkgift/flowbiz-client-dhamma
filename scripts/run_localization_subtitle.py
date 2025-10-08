@@ -45,9 +45,12 @@ def main():
         "english_summary": result.english_summary,
         "quality_meta": getattr(result, "quality_meta", {}),
     }
-    (out_dir / "summary.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    (out_dir / "summary.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     print(f"เขียนไฟล์ผลลัพธ์ที่ {out_dir}")
+
 
 if __name__ == "__main__":
     main()

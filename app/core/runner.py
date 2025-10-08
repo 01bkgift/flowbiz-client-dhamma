@@ -17,6 +17,7 @@ except Exception:  # pragma: no cover
 LOG_DIR = Path("output") / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
+
 def _resolve_python(cmd: list[str]) -> list[str]:
     """
     หากคำสั่งเริ่มด้วย "python" จะพยายามแทนด้วย ENV PYTHON_BIN หรือ sys.executable
@@ -30,11 +31,14 @@ def _resolve_python(cmd: list[str]) -> list[str]:
         cmd = [py] + cmd[1:]
     return cmd
 
+
 class ProcessJob:
     def __init__(self, agent_key: str, cmd: list[str]):
         self.agent_key = agent_key
         self.cmd = _resolve_python(cmd)
-        self.status = "idle"     # idle|starting|running|paused|stopping|stopped|completed|error
+        self.status = (
+            "idle"  # idle|starting|running|paused|stopping|stopped|completed|error
+        )
         self.progress = 0
         self.log: list[str] = []
         self.proc: asyncio.subprocess.Process | None = None
@@ -77,6 +81,7 @@ class ProcessJob:
             creationflags = 0
             if os.name == "nt":
                 import subprocess as sp
+
                 creationflags = getattr(sp, "CREATE_NEW_PROCESS_GROUP", 0)
             self.proc = await asyncio.create_subprocess_exec(
                 *self.cmd,
@@ -86,9 +91,13 @@ class ProcessJob:
             )
             self.status = "running"
             if self.proc.stdout:
-                self._stdout_task = asyncio.create_task(self._read_stream(self.proc.stdout, "STDOUT"))
+                self._stdout_task = asyncio.create_task(
+                    self._read_stream(self.proc.stdout, "STDOUT")
+                )
             if self.proc.stderr:
-                self._stderr_task = asyncio.create_task(self._read_stream(self.proc.stderr, "STDERR"))
+                self._stderr_task = asyncio.create_task(
+                    self._read_stream(self.proc.stderr, "STDERR")
+                )
             rc = await self.proc.wait()
             if self._stdout_task:
                 await self._stdout_task
@@ -192,6 +201,7 @@ class ProcessJob:
         self.log.append("รีเซ็ตสถานะงานแล้ว")
         self._append_file_log("รีเซ็ตสถานะงานแล้ว")
 
+
 PROCESS_JOB_TYPE: TypeAlias = ProcessJob
 
 
@@ -203,12 +213,17 @@ class Runner:
 
     def _get_cmd(self, agent_key: str) -> list[str]:
         entry = self.map.get(agent_key) or self.map.get("default") or {}
-        cmd = entry.get("cmd") or ["python", "-c", f"print('ยังไม่ได้กำหนดคำสั่งสำหรับ {agent_key}')"]
+        cmd = entry.get("cmd") or [
+            "python",
+            "-c",
+            f"print('ยังไม่ได้กำหนดคำสั่งสำหรับ {agent_key}')",
+        ]
         return _resolve_python(cmd)
 
     def get(self, agent_key: str) -> ProcessJob:
         if agent_key not in self.jobs:
             self.jobs[agent_key] = ProcessJob(agent_key, self._get_cmd(agent_key))
         return self.jobs[agent_key]
+
 
 RUNNER = Runner()
