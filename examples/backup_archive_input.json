@@ -1,0 +1,4 @@
+{
+  "assets": ["output/final_video.mp4", "output/localization_result/subtitles.srt"],
+  "dest": "backup/2025-10-04"
+}

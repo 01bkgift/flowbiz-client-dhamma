@@ -1,0 +1,3 @@
+{
+  "checks": ["secret_key", "admin_password", "https_proxy"]
+}

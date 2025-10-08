@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>ตั้งค่า (อ่านอย่างเดียว — MVP)</h2>
+<ul>
+  <li>APP_NAME: <code>{{ cfg.APP_NAME }}</code></li>
+  <li>ADMIN_USERNAME: <code>{{ cfg.ADMIN_USERNAME }}</code></li>
+  <li>DATA_DIR: <code>{{ cfg.DATA_DIR }}</code></li>
+  <li>OUTPUT_DIR: <code>{{ cfg.OUTPUT_DIR }}</code></li>
+  <li>OPENAI_MODEL: <code>{{ cfg.OPENAI_MODEL }}</code></li>
+  <li>PYTHON_BIN: <code>{{ cfg.PYTHON_BIN }}</code></li>
+</ul>
+<p>ปรับค่าได้ที่ไฟล์ .env</p>
+{% endblock %}

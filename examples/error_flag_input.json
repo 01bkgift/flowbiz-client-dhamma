@@ -1,0 +1,3 @@
+{
+  "checks": ["copyright", "audio_level", "missing_asset"]
+}

@@ -1,0 +1,4 @@
+{
+  "source": "script.md",
+  "targets": ["srt", "pdf"]
+}

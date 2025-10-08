@@ -1,0 +1,7 @@
+{
+  "base_start_time": "00:00:05,000",
+  "approved_script": [
+    { "segment_type": "intro", "text": "ยินดีต้อนรับ [CIT:123]", "est_seconds": 6 },
+    { "segment_type": "teaching", "text": "ฝึกหายใจลึก (หยุด 1 วิ)", "est_seconds": 8 }
+  ]
+}

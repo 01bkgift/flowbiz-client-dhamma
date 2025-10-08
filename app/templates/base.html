@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title or "ธรรมะดีดี" }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><strong>ธรรมะดีดี</strong></li>
+      </ul>
+      <ul>
+        {% if request.session.get("user") %}
+          <li><a href="/dashboard">แดชบอร์ด</a></li>
+          <li><a href="/agents">เอเจนต์</a></li>
+          <li><a href="/wizard">วิซาร์ด</a></li>
+          <li><a href="/settings">ตั้งค่า</a></li>
+          <li><a href="/logout">ออกจากระบบ</a></li>
+        {% else %}
+          <li><a href="/">เข้าสู่ระบบ</a></li>
+          <li><a href="/forgot">ลืมรหัสผ่าน</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="container">
+    <small>© {{ 2025 }} ธรรมะดีดี — เครื่องมือภายใน</small>
+  </footer>
+</body>
+</html>

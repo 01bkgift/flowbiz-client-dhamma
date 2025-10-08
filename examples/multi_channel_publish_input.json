@@ -1,0 +1,4 @@
+{
+  "platforms": ["youtube", "facebook", "tiktok"],
+  "schedule": "immediate"
+}

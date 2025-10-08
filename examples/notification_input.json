@@ -1,0 +1,5 @@
+{
+  "channel": "email",
+  "message": "Pipeline สำเร็จแล้ว",
+  "to": ["ops@example.com"]
+}

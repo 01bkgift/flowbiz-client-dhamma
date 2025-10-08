@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<article>
+  <header>
+    <h3>{{ agent.name }}</h3>
+    <p class="contrast">{{ agent.desc }}</p>
+  </header>
+  <p>สถานะ: <strong>{{ job.status }}</strong></p>
+  <p>ความคืบหน้า: <progress value="{{ job.progress }}" max="100">{{ job.progress }}%</progress></p>
+
+  <form method="post" action="/agents/{{ agent.key }}/action" class="grid">
+    <input type="hidden" name="action" value="start">
+    <button type="submit">เริ่ม</button>
+  </form>
+  <div class="grid">
+    <form method="post" action="/agents/{{ agent.key }}/action">
+      <input type="hidden" name="action" value="pause">
+      <button type="submit" class="secondary">พัก</button>
+    </form>
+    <form method="post" action="/agents/{{ agent.key }}/action">
+      <input type="hidden" name="action" value="resume">
+      <button type="submit" class="secondary">ต่อ</button>
+    </form>
+    <form method="post" action="/agents/{{ agent.key }}/action">
+      <input type="hidden" name="action" value="stop">
+      <button type="submit" class="secondary">หยุด</button>
+    </form>
+    <form method="post" action="/agents/{{ agent.key }}/action">
+      <input type="hidden" name="action" value="reset">
+      <button type="submit" class="secondary">รีเซ็ต</button>
+    </form>
+  </div>
+
+  <details>
+    <summary>บันทึกเหตุการณ์ (Logs)</summary>
+    <pre>
+{% for line in job.log %}{{ line }}
+{% endfor %}
+    </pre>
+    <p>ไฟล์ log: output/logs/{{ agent.key }}.log</p>
+  </details>
+
+  <p><small>หมายเหตุ: Pause/Resume รองรับ Windows ผ่าน psutil และ POSIX ผ่านสัญญาณ</small></p>
+</article>
+{% endblock %}

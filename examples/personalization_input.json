@@ -1,0 +1,5 @@
+{
+  "user_id": "U001",
+  "profile": {"age": 28, "gender": "female", "interest": ["นอนหลับ", "สมาธิ"]},
+  "history": ["V01", "V04"]
+}

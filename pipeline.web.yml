@@ -1,0 +1,25 @@
+# Orchestrator Pipeline ที่เว็บจะเรียกจากหน้า Wizard
+steps:
+  - id: inventory_index
+    cmd: ["python", "scripts/index_agents.py", "--out", "data/agents_index.json"]
+
+  - id: trend_scout
+    cmd: ["python", "-m", "cli.main", "trend-scout", "--input", "src/agents/trend_scout/mock_input.json", "--out", "output/web_trend_topics.json"]
+
+  - id: script_outline
+    cmd: ["python", "scripts/agent_placeholder.py", "--agent", "script_outline", "--input", "examples/script_outline_input.json", "--out", "output/script_outline_result.json"]
+
+  - id: script_writer
+    cmd: ["python", "scripts/agent_placeholder.py", "--agent", "script_writer", "--input", "examples/script_writer_input.json", "--out", "output/script_writer_result.json"]
+
+  - id: doctrine_validator
+    cmd: ["python", "scripts/agent_placeholder.py", "--agent", "doctrine_validator", "--input", "examples/doctrine_validator_input.json", "--out", "output/doctrine_validator_result.json"]
+
+  - id: localization_subtitle
+    cmd: ["python", "scripts/run_localization_subtitle.py", "--input", "examples/localization_input.json", "--out", "output/localization_result"]
+
+  - id: seo_metadata
+    cmd: ["python", "scripts/agent_placeholder.py", "--agent", "seo_metadata", "--input", "examples/seo_metadata_input.json", "--out", "output/seo_metadata_result.json"]
+
+  - id: scheduling_publish
+    cmd: ["python", "scripts/agent_placeholder.py", "--agent", "scheduling_publish", "--input", "examples/scheduling_publish_input.json", "--out", "output/scheduling_publish_result.json"]

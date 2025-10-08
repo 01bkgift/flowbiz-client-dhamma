@@ -1,0 +1,6 @@
+{
+  "samples": [
+    {"x": "text a", "y": "label1"},
+    {"x": "text b", "y": "label2"}
+  ]
+}

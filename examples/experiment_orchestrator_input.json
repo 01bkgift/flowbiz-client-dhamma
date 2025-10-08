@@ -1,0 +1,3 @@
+{
+  "experiments": ["title_ab_test", "thumbnail_ab_test"]
+}

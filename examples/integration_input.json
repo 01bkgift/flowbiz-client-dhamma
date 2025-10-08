@@ -1,0 +1,5 @@
+{
+  "target": "youtube_api",
+  "action": "upload_video",
+  "payload": {"path": "output/final_video.mp4"}
+}

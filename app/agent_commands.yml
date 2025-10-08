@@ -1,0 +1,90 @@
+# แมป agent key -> คำสั่ง CLI ที่จะรัน
+# ปรับแก้คำสั่งจริงของแต่ละเอเจนต์ได้ตาม CLI ที่มีในโปรเจกต์
+
+# งานระบบ
+inventory_index:
+  cmd: ["python", "scripts/index_agents.py", "--out", "data/agents_index.json"]
+
+orchestrator_pipeline:
+  cmd: ["python", "scripts/run_pipeline.py", "--pipeline", "pipeline.web.yml"]
+
+# ตัวอย่างที่พร้อมรันจริง
+trend_scout:
+  cmd: ["python", "-m", "cli.main", "trend-scout", "--input", "src/agents/trend_scout/mock_input.json", "--out", "output/web_trend_topics.json"]
+
+localization_subtitle:
+  cmd: ["python", "scripts/run_localization_subtitle.py", "--input", "examples/localization_input.json", "--out", "output/localization_result"]
+
+# ด้านล่างแมปทุกเอเจนต์ที่เหลือให้ชี้ไปยัง placeholder runner ก่อน (แก้เป็นคำสั่งจริงเมื่อพร้อม)
+topic_prioritizer:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "topic_prioritizer", "--input", "examples/topic_prioritizer_input.json", "--out", "output/topic_prioritizer_result.json"]
+research_retrieval:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "research_retrieval", "--input", "examples/research_retrieval_input.json", "--out", "output/research_retrieval_result.json"]
+script_outline:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "script_outline", "--input", "examples/script_outline_input.json", "--out", "output/script_outline_result.json"]
+script_writer:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "script_writer", "--input", "examples/script_writer_input.json", "--out", "output/script_writer_result.json"]
+doctrine_validator:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "doctrine_validator", "--input", "examples/doctrine_validator_input.json", "--out", "output/doctrine_validator_result.json"]
+voiceover:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "voiceover", "--input", "examples/voiceover_input.json", "--out", "output/voiceover_result.json"]
+visual_asset:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "visual_asset", "--input", "examples/visual_asset_input.json", "--out", "output/visual_asset_result.json"]
+thumbnail_generator:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "thumbnail_generator", "--input", "examples/thumbnail_generator_input.json", "--out", "output/thumbnail_generator_result.json"]
+seo_metadata:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "seo_metadata", "--input", "examples/seo_metadata_input.json", "--out", "output/seo_metadata_result.json"]
+scheduling_publish:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "scheduling_publish", "--input", "examples/scheduling_publish_input.json", "--out", "output/scheduling_publish_result.json"]
+analytics_retention:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "analytics_retention", "--input", "examples/analytics_retention_input.json", "--out", "output/analytics_retention_result.json"]
+experiment_orchestrator:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "experiment_orchestrator", "--input", "examples/experiment_orchestrator_input.json", "--out", "output/experiment_orchestrator_result.json"]
+growth_forecast:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "growth_forecast", "--input", "examples/growth_forecast_input.json", "--out", "output/growth_forecast_result.json"]
+feedback_loop:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "feedback_loop", "--input", "examples/feedback_loop_input.json", "--out", "output/feedback_loop_result.json"]
+dashboard:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "dashboard", "--input", "examples/dashboard_input.json", "--out", "output/dashboard_result.json"]
+error_flag:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "error_flag", "--input", "examples/error_flag_input.json", "--out", "output/error_flag_result.json"]
+legal_compliance:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "legal_compliance", "--input", "examples/legal_compliance_input.json", "--out", "output/legal_compliance_result.json"]
+notification:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "notification", "--input", "examples/notification_input.json", "--out", "output/notification_result.json"]
+integration:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "integration", "--input", "examples/integration_input.json", "--out", "output/integration_result.json"]
+monitoring:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "monitoring", "--input", "examples/monitoring_input.json", "--out", "output/monitoring_result.json"]
+data_sync:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "data_sync", "--input", "examples/data_sync_input.json", "--out", "output/data_sync_result.json"]
+prompt_pack:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "prompt_pack", "--input", "examples/prompt_pack_input.json", "--out", "output/prompt_pack_result.json"]
+agent_template:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "agent_template", "--input", "examples/agent_template_input.json", "--out", "output/agent_template_result.json"]
+multi_channel_publish:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "multi_channel_publish", "--input", "examples/multi_channel_publish_input.json", "--out", "output/multi_channel_publish_result.json"]
+security:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "security", "--input", "examples/security_input.json", "--out", "output/security_result.json"]
+advanced_bi:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "advanced_bi", "--input", "examples/advanced_bi_input.json", "--out", "output/advanced_bi_result.json"]
+personalization:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "personalization", "--input", "examples/personalization_input.json", "--out", "output/personalization_result.json"]
+user_feedback_collector:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "user_feedback_collector", "--input", "examples/user_feedback_collector_input.json", "--out", "output/user_feedback_collector_result.json"]
+community_insight:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "community_insight", "--input", "examples/community_insight_input.json", "--out", "output/community_insight_result.json"]
+auto_labeling:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "auto_labeling", "--input", "examples/auto_labeling_input.json", "--out", "output/auto_labeling_result.json"]
+training_data:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "training_data", "--input", "examples/training_data_input.json", "--out", "output/training_data_result.json"]
+format_conversion:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "format_conversion", "--input", "examples/format_conversion_input.json", "--out", "output/format_conversion_result.json"]
+backup_archive:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "backup_archive", "--input", "examples/backup_archive_input.json", "--out", "output/backup_archive_result.json"]
+data_enrichment:
+  cmd: ["python", "scripts/agent_placeholder.py", "--agent", "data_enrichment", "--input", "examples/data_enrichment_input.json", "--out", "output/data_enrichment_result.json"]
+
+# ค่าปริยาย หากไม่พบ agent key
+default:
+  cmd: ["python", "-c", "print('ยังไม่ได้กำหนดคำสั่งสำหรับเอเจนต์นี้')"]

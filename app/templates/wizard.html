@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>วิซาร์ดการตั้งค่า</h2>
+
+{% if warnings and warnings|length > 0 %}
+<article>
+  <h4>คำแนะนำด้านความปลอดภัย</h4>
+  <ul>
+    {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+  </ul>
+</article>
+{% endif %}
+
+<ol>
+  <li>ตรวจสอบ .env และค่าจำเป็น (ADMIN_USERNAME/ADMIN_PASSWORD, PYTHON_BIN สำหรับ Windows)</li>
+  <li>ตรวจสอบโฟลเดอร์ <code>output/</code> และ <code>data/</code></li>
+  <li>สแกนไฟล์เอเจนต์/พร็อมต์ (Inventory)</li>
+  <li>รัน Orchestrator Pipeline ตัวอย่าง</li>
+</ol>
+
+<article>
+  <h3>ขั้นที่ 1: .env</h3>
+  <p>ถ้ายังไม่มีไฟล์ .env ให้คัดลอกจาก .env.web.example แล้วแก้ ADMIN_USERNAME/ADMIN_PASSWORD และ PYTHON_BIN (Windows)</p>
+</article>
+
+<article>
+  <h3>ขั้นที่ 2: โฟลเดอร์</h3>
+  <p>หากยังไม่มีโฟลเดอร์ <code>output/</code> และ <code>data/</code> ให้สร้างขึ้น</p>
+</article>
+
+<article>
+  <h3>ขั้นที่ 3-4: เริ่มต้นกระบวนการ</h3>
+  <form method="post" action="/wizard/run">
+    <button type="submit">รัน Pipeline (Inventory → Trend → Outline → Script → Validate → Subtitle → SEO → Publish)</button>
+  </form>
+  <p>ระบบจะพาไปหน้ารายละเอียด “Orchestrator Pipeline” เพื่อดูสถานะและ Logs</p>
+</article>
+{% endblock %}

@@ -1,0 +1,5 @@
+{
+  "source": "analytics_csv",
+  "dest": "warehouse",
+  "mode": "append"
+}

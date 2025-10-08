@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<article>
+  <h2>เข้าสู่ระบบ</h2>
+  {% if error %}<mark class="secondary">{{ error }}</mark>{% endif %}
+  <form method="post" action="/login">
+    <label>ชื่อผู้ใช้<input type="text" name="username" required /></label>
+    <label>รหัสผ่าน<input type="password" name="password" required /></label>
+    <button type="submit">เข้าสู่ระบบ</button>
+  </form>
+  <p><a href="/forgot">ลืมรหัสผ่าน?</a></p>
+  <details>
+    <summary>ตัวอย่างบัญชีผู้ดูแลระบบ</summary>
+    <p>Username/Password: <code>{{ admin_hint }}</code></p>
+  </details>
+</article>
+{% endblock %}

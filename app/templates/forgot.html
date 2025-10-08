@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<article>
+  <h2>ลืมรหัสผ่าน</h2>
+  <p>ระบบนี้ไม่รองรับการสมัคร/รีเซ็ตรหัสผ่านอัตโนมัติ (ใช้ภายใน)</p>
+  <p>โปรดใช้บัญชีผู้ดูแลระบบ:</p>
+  <ul>
+    <li>ชื่อผู้ใช้: <code>{{ admin_user }}</code></li>
+    <li>รหัสผ่าน: <code>{{ admin_pass }}</code></li>
+  </ul>
+  <p>ปรับแก้ได้ที่ไฟล์ <code>.env</code> (ADMIN_USERNAME, ADMIN_PASSWORD)</p>
+</article>
+{% endblock %}

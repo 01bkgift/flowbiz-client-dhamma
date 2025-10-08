@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>แดชบอร์ด</h2>
+
+{% if warnings and warnings|length > 0 %}
+<article>
+  <h4>คำแนะนำด้านความปลอดภัย</h4>
+  <ul>
+    {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+  </ul>
+</article>
+{% endif %}
+
+<p>ภาพรวมสถานะเอเจนต์</p>
+<table role="grid">
+  <thead>
+    <tr><th>เอเจนต์</th><th>สถานะ</th><th>ความคืบหน้า</th></tr>
+  </thead>
+  <tbody>
+  {% for a in agents %}
+    <tr>
+      <td><a href="/agents/{{ a.key }}">{{ a.name }}</a></td>
+      <td>{{ a.status }}</td>
+      <td><progress value="{{ a.progress }}" max="100">{{ a.progress }}%</progress></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

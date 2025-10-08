@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    container_name: dhamma-web
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=dhamma-automation
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - ./output:/app/output
+      - ./data:/app/data
+    restart: unless-stopped

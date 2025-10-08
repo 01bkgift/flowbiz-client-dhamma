@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>เอเจนต์</h2>
+<div class="grid">
+  {% for a in agents %}
+  <article>
+    <header><strong>{{ a.name }}</strong></header>
+    <p>{{ a.desc }}</p>
+    <footer>
+      <a role="button" href="/agents/{{ a.key }}">เปิดดู</a>
+    </footer>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

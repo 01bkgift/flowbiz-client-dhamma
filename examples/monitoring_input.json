@@ -1,0 +1,4 @@
+{
+  "probe": "web_health",
+  "interval_sec": 60
+}
