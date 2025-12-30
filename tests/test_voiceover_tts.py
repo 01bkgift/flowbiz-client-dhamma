@@ -1,17 +1,28 @@
+"""
+ทดสอบโมดูล voiceover_tts สำหรับการสร้างไฟล์เสียงแบบ deterministic
+
+ไฟล์นี้ทดสอบฟีเจอร์ต่างๆ ของระบบ TTS voiceover ได้แก่:
+- การสร้างชื่อไฟล์แบบ deterministic จาก content hash
+- kill switch (PIPELINE_ENABLED) ที่ไม่ทำให้เกิด side effects
+- การสร้างไฟล์ WAV ที่ถูกต้องตามมาตรฐาน
+- schema ของ metadata ที่มีความเสถียร
+- การป้องกัน path traversal
+"""
+
 from __future__ import annotations
 
-from pathlib import Path
 import wave
+from pathlib import Path
 
 import pytest
 
 from automation_core.voiceover_tts import (
-    PIPELINE_DISABLED_MESSAGE,
-    NullTTSEngine,
     NULL_TTS_DURATION_SECONDS,
+    PIPELINE_DISABLED_MESSAGE,
     WAV_CHANNELS,
     WAV_SAMPLE_RATE,
     WAV_SAMPLE_WIDTH_BYTES,
+    NullTTSEngine,
     build_voiceover_paths,
     cli_main,
     compute_input_sha256,
@@ -20,6 +31,7 @@ from automation_core.voiceover_tts import (
 
 
 def test_deterministic_output_path():
+    """ทดสอบว่าชื่อไฟล์ที่สร้างจาก input เดียวกันจะเหมือนกันเสมอ (deterministic)"""
     run_id = "run_123"
     slug = "demo_slug"
     script = "Hello world"
@@ -34,6 +46,7 @@ def test_deterministic_output_path():
 
 
 def test_different_script_changes_output_name():
+    """ทดสอบว่าสคริปต์ที่ต่างกันจะสร้างชื่อไฟล์ที่ต่างกัน"""
     run_id = "run_123"
     slug = "demo_slug"
 
@@ -48,6 +61,7 @@ def test_different_script_changes_output_name():
 
 
 def test_kill_switch_no_side_effects(tmp_path, monkeypatch, capsys):
+    """ทดสอบว่า kill switch (PIPELINE_ENABLED=false) ไม่สร้างไฟล์หรือไดเรกทอรีใดๆ"""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PIPELINE_ENABLED", "false")
 
@@ -75,6 +89,7 @@ def test_kill_switch_no_side_effects(tmp_path, monkeypatch, capsys):
 
 
 def test_null_tts_writes_valid_wav(tmp_path, monkeypatch):
+    """ทดสอบว่า NullTTSEngine สร้างไฟล์ WAV ที่ถูกต้องตามพารามิเตอร์ที่กำหนด"""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
 
@@ -103,6 +118,7 @@ def test_null_tts_writes_valid_wav(tmp_path, monkeypatch):
 
 
 def test_metadata_schema_stable(tmp_path, monkeypatch):
+    """ทดสอบว่า metadata JSON มี schema ที่คงที่และตรงตามที่กำหนด"""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
 
@@ -144,6 +160,7 @@ def test_metadata_schema_stable(tmp_path, monkeypatch):
 
 
 def test_slug_rejects_path_traversal(tmp_path, monkeypatch):
+    """ทดสอบว่าระบบป้องกัน path traversal ใน slug ได้อย่างถูกต้อง"""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
 
