@@ -29,7 +29,7 @@ WAV_SAMPLE_WIDTH_BYTES = 2
 NULL_TTS_DURATION_SECONDS = 1.0
 MAX_SCRIPT_LENGTH = 4096
 METADATA_SCHEMA_VERSION = "1"
-_IDENTIFIER_RE = re.compile(r"^[a-z0-9][a-z0-9-_]{0,63}$")
+_IDENTIFIER_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 
 class TTSEngine(Protocol):
