@@ -21,6 +21,7 @@ The following aspects of pipeline output must remain stable unless intentionally
 - **JSON Schema:** All JSON outputs must maintain consistent field names and types
 - **File Naming:** Output files follow predictable naming conventions (e.g., `metadata.json`, `topics_ranked.json`, `outline.md`)
 - **Directory Structure:** Pipeline creates `output/{run_id}/` with expected files
+- **Voiceover Artifacts:** Deterministic TTS outputs live under `data/voiceovers/<run_id>/` with filenames like `<slug>_<sha256[:12]>.wav` and `<slug>_<sha256[:12]>.json`
 
 ### 2. Content Format
 - **Metadata Format:** YouTube metadata follows established structure (title, description, tags, SEO keywords)
@@ -38,6 +39,20 @@ The following aspects of pipeline output must remain stable unless intentionally
 - **SEO Optimization:** Generates searchable keywords, thumbnail suggestions, hashtags
 - **Compliance:** Content adheres to Buddhist doctrine and YouTube policies
 - **Single-Channel Focus:** All outputs optimized for one Thai Buddhist mindfulness channel
+
+### 5. Voiceover Metadata (TTS)
+- **Location:** `data/voiceovers/<run_id>/<slug>_<sha256[:12]>.json`
+- **Required fields (stable):**
+  - `run_id` (string)
+  - `slug` (string)
+  - `input_sha256` (string, 64 hex chars)
+  - `output_wav_path` (string, relative path)
+  - `duration_seconds` (number)
+  - `engine_name` (string)
+- **Optional fields (informational only):**
+  - `voice` (string)
+  - `style` (string)
+  - `created_utc` (string, not used for naming)
 
 ## Included Reference Items
 
@@ -200,6 +215,7 @@ When the kill switch is enabled (`PIPELINE_ENABLED=false`), the pipeline stops b
 - **Update docs with code:** If output format changes, update baseline documentation
 - **Keep samples small:** Trim reference files to essential structure (non-PII)
 - **Version baselines:** Track baseline changes in git for auditability
+- **AGENTS.md:** Repo has no AGENTS.md; followed existing conventions instead
 
 ## Contact
 

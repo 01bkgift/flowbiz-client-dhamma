@@ -2,6 +2,10 @@
 
 # ruff: noqa: I001
 
+from __future__ import annotations
+
+from typing import Any
+
 from .data_sync import (
     DataSyncAgent,
     DataSyncLogEntry,
@@ -136,21 +140,33 @@ __all__ = [
     "ErrorFlagWarningItem",
 ]
 
-try:  # Optional dependency: sentence_transformers
-    from .doctrine_validator import (
-        DoctrineValidatorAgent,
-        DoctrineValidatorInput,
-        DoctrineValidatorOutput,
+
+def __getattr__(name: str) -> Any:  # pragma: no cover
+    """Lazy-load optional DoctrineValidator exports.
+
+    เหตุผล: ลดภาระการ import dependency หนักใน package-level import.
+    """
+    if name not in {
+        "DoctrineValidatorAgent",
+        "DoctrineValidatorInput",
+        "DoctrineValidatorOutput",
+    }:
+        raise AttributeError(name)
+
+    try:
+        from .doctrine_validator import (  # type: ignore
+            DoctrineValidatorAgent,
+            DoctrineValidatorInput,
+            DoctrineValidatorOutput,
+        )
+    except ModuleNotFoundError:
+        return None
+
+    globals().update(
+        {
+            "DoctrineValidatorAgent": DoctrineValidatorAgent,
+            "DoctrineValidatorInput": DoctrineValidatorInput,
+            "DoctrineValidatorOutput": DoctrineValidatorOutput,
+        }
     )
-except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
-    DoctrineValidatorAgent = None  # type: ignore[assignment]
-    DoctrineValidatorInput = None  # type: ignore[assignment]
-    DoctrineValidatorOutput = None  # type: ignore[assignment]
-else:  # pragma: no cover - exercised when dependency is installed
-    __all__.extend(
-        [
-            "DoctrineValidatorAgent",
-            "DoctrineValidatorInput",
-            "DoctrineValidatorOutput",
-        ]
-    )
+    return globals()[name]

@@ -22,6 +22,8 @@
 
 ### 2. วิธีใช้งาน
 
+Note: In production, use the orchestrator/web runner; the CLI is for local/dev only.
+
 #### แบบที่ 1: กดปุ่มใน Production Guide (แนะนำ)
 
 1. เปิดไฟล์ `PRODUCTION_GUIDE.html`
