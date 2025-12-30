@@ -422,9 +422,8 @@ def cli_main(argv: list[str] | None = None) -> int:
 
     print("Voiceover generated:")
     print(f"  WAV: {metadata['output_wav_path']}")
-    _, metadata_path = build_voiceover_paths(
-        args.run_id, args.slug, metadata["input_sha256"], base_dir=DEFAULT_VOICEOVER_DIR
-    )
+    wav_rel = Path(str(metadata["output_wav_path"]))
+    metadata_path = (REPO_ROOT / wav_rel).with_suffix(".json")
     print(f"  Metadata: {_relative_to_root(metadata_path, REPO_ROOT)}")
     print(f"  Engine: {metadata['engine_name']}")
     print(f"  Duration: {metadata['duration_seconds']}")

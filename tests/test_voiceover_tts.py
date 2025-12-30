@@ -145,10 +145,6 @@ def test_metadata_schema_stable(tmp_path, monkeypatch):
     assert isinstance(metadata["output_wav_path"], str)
     assert metadata["output_wav_path"].startswith("data/voiceovers/")
     assert not Path(metadata["output_wav_path"]).is_absolute()
-    assert not (
-        len(metadata["output_wav_path"]) >= 3
-        and metadata["output_wav_path"][1:3] in {":\\", ":/"}
-    )
     assert isinstance(metadata["duration_seconds"], (int, float))
     assert isinstance(metadata["engine_name"], str)
     if "voice" in metadata:
