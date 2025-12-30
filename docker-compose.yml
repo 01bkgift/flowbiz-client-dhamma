@@ -4,7 +4,7 @@ services:
     build: .
     container_name: dhamma-web
     ports:
-      - "127.0.0.1:3007:8000"
+      - "127.0.0.1:${FLOWBIZ_ALLOCATED_PORT:?FLOWBIZ_ALLOCATED_PORT is required. Use --env-file config/flowbiz_port.env}:8000"
     environment:
       - APP_SERVICE_NAME=dhamma-automation
       - APP_ENV=dev

@@ -32,6 +32,21 @@ check_fail() {
     FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 
+DEFAULT_PORT=3007
+PORT_ENV_FILE="config/flowbiz_port.env"
+PORT="$DEFAULT_PORT"
+if [ -f "$PORT_ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    source "$PORT_ENV_FILE"
+    if [[ "${FLOWBIZ_ALLOCATED_PORT:-}" =~ ^[0-9]+$ ]]; then
+        PORT="$FLOWBIZ_ALLOCATED_PORT"
+    else
+        check_warn "Invalid FLOWBIZ_ALLOCATED_PORT in $PORT_ENV_FILE - using default $DEFAULT_PORT"
+    fi
+else
+    check_warn "Port config not found at $PORT_ENV_FILE - using default $DEFAULT_PORT"
+fi
+
 echo "1. Checking port binding configuration..."
 echo "-------------------------------------------------------------------"
 
@@ -47,11 +62,16 @@ if [ -f "docker-compose.yml" ]; then
         check_warn "Could not verify port binding format"
     fi
     
-    # Check allocated port
-    if grep -q "127.0.0.1:3007:8000" docker-compose.yml; then
-        check_pass "Using allocated port 3007"
+    # Check allocated port variable usage
+    # Accept both:
+    # - ${FLOWBIZ_ALLOCATED_PORT}
+    # - ${FLOWBIZ_ALLOCATED_PORT:?message}
+    if grep -qE '127\.0\.0\.1:\$\{FLOWBIZ_ALLOCATED_PORT(:\?[^}]+)?\}:8000' docker-compose.yml; then
+        check_pass "Using FLOWBIZ_ALLOCATED_PORT variable (currently ${PORT})"
+    elif grep -q "127.0.0.1:${PORT}:8000" docker-compose.yml; then
+        check_warn "Using hardcoded port ${PORT} instead of \${FLOWBIZ_ALLOCATED_PORT} variable"
     else
-        check_warn "Not using standard allocated port 3007"
+        check_warn "Could not verify allocated port usage"
     fi
 else
     check_warn "docker-compose.yml not found - cannot verify port binding"
@@ -94,10 +114,11 @@ echo "-------------------------------------------------------------------"
 if [ -f "nginx/dhamma-automation.conf" ]; then
     check_pass "Nginx config template exists"
     
-    if grep -q "127.0.0.1:3007" nginx/dhamma-automation.conf; then
-        check_pass "Nginx config proxies to localhost:3007"
+    # Check for deployment note about FLOWBIZ_ALLOCATED_PORT
+    if grep -q "FLOWBIZ_ALLOCATED_PORT from config/flowbiz_port.env" nginx/dhamma-automation.conf; then
+        check_pass "Nginx config has deployment note for FLOWBIZ_ALLOCATED_PORT"
     else
-        check_warn "Nginx config may not be configured for port 3007"
+        check_warn "Nginx config missing deployment note for FLOWBIZ_ALLOCATED_PORT"
     fi
 else
     check_fail "Nginx config template missing: nginx/dhamma-automation.conf"
@@ -132,14 +153,14 @@ echo "-------------------------------------------------------------------"
 # Check if service is running on localhost:3007
 SERVICE_RUNNING=false
 if command -v curl &> /dev/null; then
-    if curl -s -f -m 2 http://127.0.0.1:3007/healthz > /dev/null 2>&1; then
+    if curl -s -f -m 2 "http://127.0.0.1:${PORT}/healthz" > /dev/null 2>&1; then
         SERVICE_RUNNING=true
     fi
 fi
 
 if [ "$SERVICE_RUNNING" = true ]; then
     # Test /healthz endpoint
-    healthz_response=$(curl -s -f http://127.0.0.1:3007/healthz 2>/dev/null || echo "")
+    healthz_response=$(curl -s -f "http://127.0.0.1:${PORT}/healthz" 2>/dev/null || echo "")
     if [ -n "$healthz_response" ]; then
         if echo "$healthz_response" | grep -q '"status"' && \
            echo "$healthz_response" | grep -q '"service"' && \
@@ -153,7 +174,7 @@ if [ "$SERVICE_RUNNING" = true ]; then
     fi
     
     # Test /v1/meta endpoint
-    meta_response=$(curl -s -f http://127.0.0.1:3007/v1/meta 2>/dev/null || echo "")
+    meta_response=$(curl -s -f "http://127.0.0.1:${PORT}/v1/meta" 2>/dev/null || echo "")
     if [ -n "$meta_response" ]; then
         if echo "$meta_response" | grep -q '"service"' && \
            echo "$meta_response" | grep -q '"environment"' && \
@@ -167,8 +188,8 @@ if [ "$SERVICE_RUNNING" = true ]; then
         check_fail "/v1/meta endpoint not responding"
     fi
 else
-    check_warn "Service not running on localhost:3007 - skipping endpoint checks"
-    echo "         Start service with: docker-compose up -d"
+    check_warn "Service not running on localhost:${PORT} - skipping endpoint checks"
+    echo "         Start service with: docker-compose --env-file config/flowbiz_port.env up -d (or docker compose equivalent)"
 fi
 
 echo ""

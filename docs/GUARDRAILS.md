@@ -12,6 +12,8 @@ Guardrails are automated checks that verify compliance with FlowBiz Client Produ
 
 **Why**: Public port bindings bypass System Nginx and expose services directly to the internet.
 
+**Port source**: `config/flowbiz_port.env` (single source of truth for `FLOWBIZ_ALLOCATED_PORT`)
+
 **Verification**:
 ```bash
 # Check docker-compose.yml
@@ -25,12 +27,12 @@ grep -E "ports:" docker-compose.yml -A1
 ```yaml
 # Correct
 ports:
-  - "127.0.0.1:3007:8000"
+  - "127.0.0.1:${FLOWBIZ_ALLOCATED_PORT}:8000"
 
 # Wrong
 ports:
-  - "0.0.0.0:3007:8000"  # Exposes to all interfaces
-  - "3007:8000"          # Defaults to 0.0.0.0
+  - "0.0.0.0:${FLOWBIZ_ALLOCATED_PORT}:8000"  # Exposes to all interfaces
+  - "${FLOWBIZ_ALLOCATED_PORT}:8000"          # Defaults to 0.0.0.0
 ```
 
 ### 2. Required Endpoints
@@ -44,14 +46,15 @@ ports:
 **Verification**:
 ```bash
 # Start service
-docker-compose up -d
+docker-compose --env-file config/flowbiz_port.env up -d
 
 # Test healthz
-curl http://127.0.0.1:3007/healthz
+source config/flowbiz_port.env
+curl "http://127.0.0.1:${FLOWBIZ_ALLOCATED_PORT}/healthz"
 # Expected: {"status":"ok","service":"dhamma-automation","version":"..."}
 
 # Test meta
-curl http://127.0.0.1:3007/v1/meta
+curl "http://127.0.0.1:${FLOWBIZ_ALLOCATED_PORT}/v1/meta"
 # Expected: {"service":"...","environment":"...","version":"...","build_sha":"..."}
 ```
 
@@ -99,13 +102,14 @@ grep -iE "password|secret|key|token" Dockerfile
 
 ### 5. Port Allocation Registry
 
-**Check**: Port 3007 is available and registered
+**Check**: Allocated port is available and registered
 
 **Verification**:
 ```bash
 # Check if port is in use
-sudo lsof -i :3007
-netstat -tulpn | grep 3007
+source config/flowbiz_port.env
+sudo lsof -i :"${FLOWBIZ_ALLOCATED_PORT}"
+netstat -tulpn | grep "${FLOWBIZ_ALLOCATED_PORT}"
 
 # Check VPS Status registry
 # https://github.com/natbkgift/flowbiz-ai-core/blob/main/docs/VPS_STATUS.md
@@ -123,6 +127,9 @@ make guardrails
 
 # Or directly
 bash scripts/guardrails.sh
+
+# Quick runtime verification (brings services up and checks endpoints/ports)
+bash scripts/runtime_verify.sh
 ```
 
 ### CI Execution
@@ -169,7 +176,7 @@ The guardrails script (`scripts/guardrails.sh`) checks:
 ```
 === FlowBiz Guardrails Check ===
 
-✓ Port binding: PASS (127.0.0.1:3007)
+✓ Port binding: PASS (127.0.0.1:${FLOWBIZ_ALLOCATED_PORT})
 ✓ /healthz endpoint: PASS
 ✓ /v1/meta endpoint: PASS
 ✓ Environment variables: PASS
@@ -205,7 +212,7 @@ Overall: PASS with 1 warning(s)
 ```yaml
 # docker-compose.yml
 ports:
-  - "127.0.0.1:3007:8000"  # Add 127.0.0.1
+  - "127.0.0.1:${FLOWBIZ_ALLOCATED_PORT}:8000"  # Add 127.0.0.1
 ```
 
 ### Missing Endpoint
