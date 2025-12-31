@@ -106,7 +106,7 @@
 - `checks` (object, ค่า boolean/metrics ขั้นต่ำ)
 
 **รูปแบบ reasons (คงที่):**
-- `code` (string, one of: `mp4_missing`, `mp4_empty`, `ffprobe_failed`, `duration_zero_or_missing`, `audio_stream_missing`, `subtitle_missing`)
+- `code` (string, one of: `mp4_missing`, `mp4_empty`, `ffprobe_failed`, `duration_zero_or_missing`, `audio_stream_missing`)
 - `message` (string)
 - `severity` (`error` | `warn`)
 - `engine` (string, `quality.gate`)
