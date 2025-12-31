@@ -48,7 +48,6 @@ nav:
   - "วงจรการทำงาน Agent": AGENT_LIFECYCLE.md
   - "Prompt Templates": PROMPTS_OVERVIEW.md
   - "Workflow Chain": DHAMMA_WORKFLOW.md
-  - "เรนเดอร์วิดีโอ (PR5)": VIDEO_RENDERING.md
   - "แผนงาน (Roadmap)": ROADMAP.md
   - "แก้ไขปัญหา": TROUBLESHOOTING.md
 
