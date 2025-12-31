@@ -1,0 +1,28 @@
+{
+  "schema_version": "v1",
+  "run_id": "sample_run",
+  "slug": "demo",
+  "text_sha256_12": "0123456789ab",
+  "input_voiceover_summary": "output/sample_run/artifacts/voiceover_summary.json",
+  "input_wav_path": "data/voiceovers/sample_run/demo_0123456789ab.wav",
+  "output_mp4_path": "output/sample_run/artifacts/demo_0123456789ab.mp4",
+  "engine": "ffmpeg",
+  "ffmpeg_cmd": [
+    "ffmpeg",
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    "color=c=black:s=1920x1080:r=30",
+    "-i",
+    "data/voiceovers/sample_run/demo_0123456789ab.wav",
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    "-c:a",
+    "aac",
+    "-shortest",
+    "output/sample_run/artifacts/demo_0123456789ab.mp4"
+  ]
+}

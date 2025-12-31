@@ -43,6 +43,24 @@ The reference samples help detect unintended changes in:
 
 **Why chosen:** The outline represents the pipeline's content structuring capability and tone consistency. Changes here affect the final script quality and audience engagement.
 
+### 4. `video/video_render_summary_v1_example.json`
+**What it represents:** Stable contract for the `video_render_summary.json` artifact produced by `uses: video.render`.
+**Key attributes to monitor:**
+- Required fields remain present (`run_id`, `slug`, `text_sha256_12`, paths)
+- All paths are relative (no absolute paths)
+- `ffmpeg_cmd` is recorded with relative paths only
+
+**Why chosen:** This summary is consumed downstream and is part of the deterministic pipeline contract; drift here can break video publishing/rendering automation.
+
+### 5. `quality/quality_gate_summary_v1_example.json`
+**What it represents:** Stable contract for the `quality_gate_summary.json` artifact produced by `uses: quality.gate`.
+**Key attributes to monitor:**
+- Required fields remain present (decision, reasons, checks)
+- All paths are relative (no absolute paths)
+- Reasons include stable `code`, `engine`, and `checked_at`
+
+**Why chosen:** This summary gates downstream steps; drift can change pass/fail decisions or hide critical failures.
+
 ## What is "Drift"?
 
 **Drift** means unintended changes in output characteristics:
@@ -106,6 +124,6 @@ While manual comparison is acceptable for now, consider implementing:
 
 ---
 
-**Last updated:** 2025-12-26  
+**Last updated:** 2025-12-31  
 **Baseline version:** v1.0  
 **Contact:** Repository maintainer for questions about drift detection

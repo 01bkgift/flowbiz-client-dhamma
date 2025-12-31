@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "run_id": "sample_run",
+  "input_video_render_summary": "output/sample_run/artifacts/video_render_summary.json",
+  "output_mp4_path": "output/sample_run/artifacts/demo_0123456789ab.mp4",
+  "decision": "pass",
+  "reasons": [],
+  "checked_at": "2025-12-31T00:00:00Z",
+  "engine": "quality.gate",
+  "checks": {
+    "mp4_exists": true,
+    "mp4_size_bytes": 123456,
+    "ffprobe_ok": true,
+    "duration_seconds": 12.34,
+    "has_audio_stream": true
+  }
+}

@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
@@ -2012,8 +2012,12 @@ def agent_video_render(step, run_dir: Path):
         raise TypeError("config must be a mapping")
 
     slug = config.get("slug")
+    if slug is None:
+        raise ValueError("config.slug is required")
     if not isinstance(slug, str):
         raise TypeError("slug must be a string")
+    if not slug.strip():
+        raise ValueError("slug must be a non-empty string")
 
     voiceover_tts._validate_identifier(run_id, "run_id")
     slug = voiceover_tts._validate_identifier(slug, "slug")
@@ -2030,10 +2034,10 @@ def agent_video_render(step, run_dir: Path):
     if not isinstance(resolution, str) or not resolution.strip():
         raise TypeError("resolution must be a non-empty string")
     if not re.fullmatch(r"\d+x\d+", resolution):
-        raise ValueError("resolution must be in WxH digits")
+        raise ValueError("resolution must be in WxH digits (e.g. 1920x1080)")
     width_str, height_str = resolution.split("x")
     if int(width_str) <= 0 or int(height_str) <= 0:
-        raise ValueError("resolution must be in WxH digits")
+        raise ValueError("resolution must be in WxH digits (e.g. 1920x1080)")
 
     bg_color = config.get("bg_color", "black")
     if not isinstance(bg_color, str) or not bg_color.strip():
@@ -2062,11 +2066,9 @@ def agent_video_render(step, run_dir: Path):
     image_abs = None
     image_rel = None
     if image_path_value is not None:
-        _, image_rel = _resolve_relative_path(image_path_value, "image_path")
-        try:
-            image_abs = _resolve_script_path(image_rel, root_dir)
-        except ValueError as exc:
-            raise ValueError("image_path must be within scripts/") from exc
+        image_abs, image_rel = _resolve_relative_path(image_path_value, "image_path")
+        if not image_abs.is_file():
+            raise FileNotFoundError(f"Image input not found: {image_rel}")
 
     voiceover_summary_value = config.get("voiceover_summary_path")
     if voiceover_summary_value is None:
@@ -2086,7 +2088,12 @@ def agent_video_render(step, run_dir: Path):
                 "voiceover_summary_path must be within output/<run_id>/artifacts"
             ) from exc
 
-    summary = read_json(voiceover_summary_path)
+    try:
+        summary = read_json(voiceover_summary_path)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Voiceover summary not found: {voiceover_summary_rel}"
+        ) from exc
     if not isinstance(summary, dict):
         raise TypeError("voiceover_summary must be a JSON object")
 
@@ -2246,7 +2253,7 @@ def agent_video_render(step, run_dir: Path):
         raise RuntimeError(message) from exc
 
     render_summary = {
-        "schema_version": "1",
+        "schema_version": "v1",
         "run_id": run_id,
         "slug": slug,
         "text_sha256_12": text_sha,
@@ -2261,6 +2268,220 @@ def agent_video_render(step, run_dir: Path):
     write_json(summary_path, render_summary)
     log(f"Video render summary created: {summary_rel}")
     return summary_rel
+
+
+def agent_quality_gate(step, run_dir: Path):
+    """Quality Gate - ตรวจสอบคุณภาพวิดีโอที่เรนเดอร์แล้วแบบ deterministic."""
+    run_id = run_dir.name
+    root_dir = ROOT.resolve()
+
+    QG_ENGINE = "quality.gate"
+    SEVERITY_ERROR = "error"
+    CODE_MP4_MISSING = "mp4_missing"
+    CODE_MP4_EMPTY = "mp4_empty"
+    CODE_FFPROBE_FAILED = "ffprobe_failed"
+    CODE_DURATION_ZERO_OR_MISSING = "duration_zero_or_missing"
+    CODE_AUDIO_STREAM_MISSING = "audio_stream_missing"
+
+    summary_rel = (
+        Path("output") / run_id / "artifacts" / "video_render_summary.json"
+    ).as_posix()
+    summary_path = root_dir / summary_rel
+
+    try:
+        summary = read_json(summary_path)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Video render summary not found: {summary_rel}"
+        ) from exc
+
+    if not isinstance(summary, dict):
+        raise TypeError("video_render_summary must be a JSON object")
+
+    schema_version = summary.get("schema_version")
+    if schema_version != "v1":
+        raise ValueError("video_render_summary.schema_version must be 'v1'")
+
+    summary_run_id = summary.get("run_id")
+    if summary_run_id is not None and summary_run_id != run_id:
+        raise ValueError("video_render_summary.run_id does not match run_id")
+
+    output_mp4_value = summary.get("output_mp4_path")
+    if not isinstance(output_mp4_value, str) or not output_mp4_value.strip():
+        raise ValueError("video_render_summary.output_mp4_path is required")
+
+    output_mp4_rel = Path(output_mp4_value).as_posix()
+    output_mp4_path_value = Path(output_mp4_rel)
+    if output_mp4_path_value.is_absolute():
+        raise ValueError("video_render_summary.output_mp4_path must be a relative path")
+    if ".." in output_mp4_path_value.parts:
+        raise ValueError(
+            "video_render_summary.output_mp4_path must not contain path traversal"
+        )
+    output_mp4_abs = (root_dir / output_mp4_path_value).resolve()
+    try:
+        output_mp4_abs.relative_to(root_dir)
+    except ValueError as exc:
+        raise ValueError(
+            "video_render_summary.output_mp4_path must be within repository root"
+        ) from exc
+
+    checked_at = datetime.now(tz=UTC).isoformat().replace("+00:00", "Z")
+    reasons: list[dict[str, object]] = []
+    checks = {
+        "mp4_exists": False,
+        "mp4_size_bytes": None,
+        "ffprobe_ok": None,
+        "duration_seconds": None,
+        "has_audio_stream": None,
+    }
+
+    def _add_reason(code: str, message: str, severity: str) -> None:
+        reasons.append(
+            {
+                "code": code,
+                "message": message,
+                "severity": severity,
+                "engine": QG_ENGINE,
+                "checked_at": checked_at,
+            }
+        )
+
+    def _check_mp4_existence() -> None:
+        if not output_mp4_abs.is_file():
+            _add_reason(
+                CODE_MP4_MISSING,
+                f"MP4 file not found: {output_mp4_rel}",
+                SEVERITY_ERROR,
+            )
+            return
+
+        checks["mp4_exists"] = True
+
+    def _check_mp4_size() -> None:
+        mp4_size = output_mp4_abs.stat().st_size
+        checks["mp4_size_bytes"] = mp4_size
+        if mp4_size == 0:
+            _add_reason(
+                CODE_MP4_EMPTY, f"MP4 file is empty: {output_mp4_rel}", SEVERITY_ERROR
+            )
+
+    def _run_ffprobe() -> dict | None:
+        ffprobe_cmd = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:stream=codec_type",
+            "-of",
+            "json",
+            str(output_mp4_abs),
+        ]
+        try:
+            completed = subprocess.run(
+                ffprobe_cmd, check=False, capture_output=True, text=True
+            )
+        except OSError:
+            _add_reason(CODE_FFPROBE_FAILED, "ffprobe execution failed", SEVERITY_ERROR)
+            checks["ffprobe_ok"] = False
+            return None
+
+        if completed.returncode != 0:
+            _add_reason(
+                CODE_FFPROBE_FAILED,
+                f"ffprobe returned non-zero exit code: {completed.returncode}",
+                SEVERITY_ERROR,
+            )
+            checks["ffprobe_ok"] = False
+            return None
+
+        try:
+            data = json.loads(completed.stdout or "{}")
+        except json.JSONDecodeError:
+            _add_reason(
+                CODE_FFPROBE_FAILED, "ffprobe output was not valid JSON", SEVERITY_ERROR
+            )
+            checks["ffprobe_ok"] = False
+            return None
+
+        checks["ffprobe_ok"] = True
+        return data if isinstance(data, dict) else None
+
+    def _check_duration(ffprobe_data: dict) -> None:
+        duration_raw = ffprobe_data.get("format", {}).get("duration")
+        duration_seconds = None
+        if duration_raw is not None:
+            try:
+                duration_seconds = float(duration_raw)
+            except (TypeError, ValueError):
+                duration_seconds = None
+
+        if duration_seconds is None or duration_seconds <= 0:
+            _add_reason(
+                CODE_DURATION_ZERO_OR_MISSING,
+                "MP4 duration is missing or zero",
+                SEVERITY_ERROR,
+            )
+        else:
+            checks["duration_seconds"] = duration_seconds
+
+    def _check_audio_stream(ffprobe_data: dict) -> None:
+        streams = ffprobe_data.get("streams", [])
+        has_audio = any(
+            isinstance(stream, dict) and stream.get("codec_type") == "audio"
+            for stream in streams
+        )
+        checks["has_audio_stream"] = has_audio
+        if not has_audio:
+            _add_reason(
+                CODE_AUDIO_STREAM_MISSING,
+                "No audio stream detected in MP4",
+                SEVERITY_ERROR,
+            )
+
+    _check_mp4_existence()
+    if checks["mp4_exists"]:
+        _check_mp4_size()
+
+    if checks["mp4_exists"] and not any(
+        r.get("code") == CODE_MP4_EMPTY for r in reasons
+    ):
+        ffprobe_data = _run_ffprobe()
+        if checks["ffprobe_ok"]:
+            assert ffprobe_data is not None
+            _check_duration(ffprobe_data)
+            _check_audio_stream(ffprobe_data)
+
+    decision = "pass"
+    if any(reason.get("severity") == SEVERITY_ERROR for reason in reasons):
+        decision = "fail"
+
+    gate_summary = {
+        "schema_version": "v1",
+        "run_id": run_id,
+        "input_video_render_summary": summary_rel,
+        "output_mp4_path": output_mp4_rel,
+        "decision": decision,
+        "reasons": reasons,
+        "checked_at": checked_at,
+        "engine": QG_ENGINE,
+        "checks": checks,
+    }
+
+    summary_out = (
+        root_dir / "output" / run_id / "artifacts" / "quality_gate_summary.json"
+    )
+    write_json(summary_out, gate_summary)
+    log(f"Quality gate summary created: {summary_out.relative_to(root_dir)}")
+
+    if decision == "fail":
+        codes = [reason.get("code", "unknown") for reason in reasons]
+        top_codes = ", ".join(codes[:3])
+        raise RuntimeError(
+            f"Quality gate failed for run_id={run_id}; reasons={top_codes}"
+        )
+
+    return summary_out.relative_to(root_dir).as_posix()
 
 
 def agent_localization(step, run_dir: Path):
@@ -2872,6 +3093,7 @@ AGENTS = {
     "Voiceover": agent_voiceover,
     "voiceover.tts": agent_voiceover_tts,
     "video.render": agent_video_render,
+    "quality.gate": agent_quality_gate,
     "Localization": agent_localization,
     "ThumbnailGenerator": agent_thumbnail_generator,
     "SEOAndMetadata": agent_seo_metadata,

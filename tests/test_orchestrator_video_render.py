@@ -174,7 +174,7 @@ steps:
     assert summary_path.exists()
 
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    assert summary["schema_version"] == "1"
+    assert summary["schema_version"] == "v1"
     assert summary["run_id"] == run_id
     assert summary["slug"] == slug
     assert summary["text_sha256_12"] == sha12
@@ -246,3 +246,63 @@ steps:
         assert "image_path" in str(exc)
     else:
         raise AssertionError("Expected ValueError for image_path traversal")
+
+
+def test_orchestrator_video_render_missing_voiceover_summary_has_clear_error(
+    tmp_path, monkeypatch
+):
+    pipeline_path = tmp_path / "pipeline.yml"
+    pipeline_path.write_text(
+        """pipeline: video_render_missing_summary
+steps:
+  - id: video_render
+    uses: video.render
+    config:
+      slug: demo
+      dry_run: true
+""",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(orchestrator, "ROOT", tmp_path)
+    monkeypatch.setenv("PIPELINE_ENABLED", "true")
+
+    try:
+        orchestrator.run_pipeline(pipeline_path, "run_missing")
+    except FileNotFoundError as exc:
+        assert "Voiceover summary not found" in str(exc)
+        assert "output/run_missing/artifacts/voiceover_summary.json" in str(exc)
+    else:
+        raise AssertionError("Expected FileNotFoundError for missing voiceover summary")
+
+
+def test_orchestrator_video_render_missing_image_has_clear_error(tmp_path, monkeypatch):
+    run_id = "run_img_missing"
+    slug = "imgmissing"
+    sha12 = compute_input_sha256("Hello image missing")[:12]
+    _write_voiceover_summary(tmp_path, run_id, slug, sha12)
+
+    pipeline_path = tmp_path / "pipeline.yml"
+    pipeline_path.write_text(
+        f"""pipeline: video_render_missing_image
+steps:
+  - id: video_render
+    uses: video.render
+    config:
+      slug: {slug}
+      image_path: thumbnails/does_not_exist.png
+      dry_run: true
+""",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(orchestrator, "ROOT", tmp_path)
+    monkeypatch.setenv("PIPELINE_ENABLED", "true")
+
+    try:
+        orchestrator.run_pipeline(pipeline_path, run_id)
+    except FileNotFoundError as exc:
+        assert "Image input not found" in str(exc)
+        assert "thumbnails/does_not_exist.png" in str(exc)
+    else:
+        raise AssertionError("Expected FileNotFoundError for missing image")
