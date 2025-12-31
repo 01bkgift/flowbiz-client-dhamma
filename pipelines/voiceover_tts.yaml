@@ -1,0 +1,9 @@
+pipeline: voiceover_tts
+version: 0.1
+steps:
+  - id: voiceover_tts
+    uses: voiceover.tts
+    config:
+      slug: voiceover_demo
+      script_path: scripts/voiceover_script.txt
+      dry_run: false

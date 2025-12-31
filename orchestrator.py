@@ -6,13 +6,18 @@ Dhamma Channel Automation - Orchestrator Pipeline
 import argparse
 import json
 import os
+import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 import yaml
 
 ROOT = Path(__file__).parent
+SRC_ROOT = ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 
 def ensure_dir(p: Path):
@@ -61,6 +66,46 @@ def log(msg: str, level="INFO"):
     """พิมพ์ log พร้อม timestamp"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [{level}] {msg}")
+
+
+def _resolve_script_path(script_path: str | Path, root_dir: Path) -> Path:
+    if isinstance(script_path, Path):
+        candidate = script_path
+    elif isinstance(script_path, str):
+        if not script_path.strip():
+            raise ValueError("script_path must be a non-empty string")
+        candidate = Path(script_path)
+    else:
+        raise TypeError("script_path must be a string or Path")
+
+    if not candidate.is_absolute():
+        candidate = root_dir / candidate
+
+    root_resolved = root_dir.resolve()
+    scripts_root = (root_dir / "scripts").resolve()
+    candidate_resolved = candidate.resolve()
+
+    try:
+        candidate_resolved.relative_to(root_resolved)
+    except ValueError as exc:
+        raise ValueError("script_path must be within repository root") from exc
+
+    try:
+        candidate_resolved.relative_to(scripts_root)
+    except ValueError as exc:
+        raise ValueError("script_path must be within scripts/") from exc
+
+    return candidate_resolved
+
+
+@dataclass(frozen=True)
+class PlannedArtifacts:
+    output_path: str
+    planned_paths: dict[str, str]
+    dry_run: bool = True
+
+    def __str__(self) -> str:
+        return self.output_path
 
 
 # ========== AGENT IMPLEMENTATIONS (PHASE: SYSTEM SETUP) ==========
@@ -1852,6 +1897,112 @@ def agent_voiceover(step, run_dir: Path):
     return out
 
 
+def agent_voiceover_tts(step, run_dir: Path):
+    """Deterministic voiceover TTS generation (orchestrator-only)."""
+    run_id = run_dir.name
+    summary_rel = (
+        Path("output") / run_id / "artifacts" / "voiceover_summary.json"
+    ).as_posix()
+    pipeline_enabled = parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED"))
+    if not pipeline_enabled:
+        log("Pipeline disabled by PIPELINE_ENABLED=false", "INFO")
+        return summary_rel
+
+    from automation_core import voiceover_tts
+
+    config = step.get("config") or {}
+    if not isinstance(config, dict):
+        raise TypeError("config must be a mapping")
+
+    slug = config.get("slug")
+    if not isinstance(slug, str):
+        raise TypeError("slug must be a string")
+
+    voiceover_tts._validate_identifier(run_id, "run_id")
+    slug = voiceover_tts._validate_identifier(slug, "slug")
+
+    script_path_value = config.get("script_path")
+    if script_path_value is None:
+        raise ValueError("script_path is required")
+    if config.get("script_text") is not None:
+        raise ValueError("script_text is not supported; use script_path")
+
+    dry_run = config.get("dry_run", False)
+    if not isinstance(dry_run, bool):
+        raise TypeError("dry_run must be a boolean")
+
+    root_dir = ROOT.resolve()
+    script_path = _resolve_script_path(script_path_value, root_dir)
+    script_text = script_path.read_text(encoding="utf-8")
+
+    if dry_run:
+        (
+            _,
+            _,
+            wav_path,
+            metadata_path,
+            resolved_root,
+        ) = voiceover_tts._prepare_voiceover_data(
+            script_text,
+            run_id,
+            slug,
+            root_dir=root_dir,
+        )
+        wav_rel = voiceover_tts._relative_to_root(wav_path, resolved_root)
+        metadata_rel = voiceover_tts._relative_to_root(metadata_path, resolved_root)
+        planned = {
+            "summary_path": summary_rel,
+            "wav_path": wav_rel,
+            "metadata_path": metadata_rel,
+        }
+        return PlannedArtifacts(
+            output_path=summary_rel,
+            planned_paths=planned,
+            dry_run=True,
+        )
+
+    metadata = voiceover_tts.generate_voiceover(
+        script_text,
+        run_id,
+        slug,
+        root_dir=root_dir,
+    )
+
+    if metadata is None:
+        log(voiceover_tts.PIPELINE_DISABLED_MESSAGE, "INFO")
+        return summary_rel
+
+    wav_rel = Path(str(metadata["output_wav_path"])).as_posix()
+    metadata_rel = Path(wav_rel).with_suffix(".json").as_posix()
+    if Path(wav_rel).is_absolute() or Path(metadata_rel).is_absolute():
+        raise ValueError("Summary paths must be relative")
+    if not wav_rel.startswith(f"data/voiceovers/{run_id}/"):
+        raise ValueError("WAV output must be under data/voiceovers/<run_id>/")
+    if not metadata_rel.startswith(f"data/voiceovers/{run_id}/"):
+        raise ValueError("Metadata output must be under data/voiceovers/<run_id>/")
+
+    input_sha = str(metadata["input_sha256"])
+    engine_name = str(metadata.get("engine_name", "unknown"))
+    if engine_name.endswith("_tts"):
+        engine_value = engine_name
+    else:
+        engine_value = f"{engine_name}_tts"
+    summary = {
+        "schema_version": "v1",
+        "run_id": run_id,
+        "slug": slug,
+        "text_sha256_12": input_sha[:12],
+        "wav_path": wav_rel,
+        "metadata_path": metadata_rel,
+        "engine": engine_value,
+    }
+
+    summary_path = root_dir / "output" / run_id / "artifacts" / "voiceover_summary.json"
+    write_json(summary_path, summary)
+    log(f"Voiceover TTS summary created: {summary_rel}")
+    return summary_rel
+
+
 def agent_localization(step, run_dir: Path):
     """Localization & Subtitle - สร้างคำบรรยายและแปลภาษา"""
     in_path = run_dir / step["input_from"]
@@ -2459,6 +2610,7 @@ AGENTS = {
     "LegalCompliance": agent_legal_compliance,
     "VisualAsset": agent_visual_asset,
     "Voiceover": agent_voiceover,
+    "voiceover.tts": agent_voiceover_tts,
     "Localization": agent_localization,
     "ThumbnailGenerator": agent_thumbnail_generator,
     "SEOAndMetadata": agent_seo_metadata,
@@ -2475,6 +2627,22 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     """รัน pipeline ตามไฟล์ YAML"""
     log(f"Loading pipeline: {pipeline_path}")
 
+    pipeline_enabled = parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED"))
+    if not pipeline_enabled:
+        log("Pipeline disabled by PIPELINE_ENABLED=false", "INFO")
+        print("Pipeline disabled by PIPELINE_ENABLED=false")
+        return {
+            "pipeline": "unknown",
+            "run_id": run_id,
+            "started_at": datetime.now().isoformat(),
+            "total_steps": 0,
+            "successful": 0,
+            "failed": 0,
+            "results": {},
+            "output_dir": str(ROOT / "output" / run_id),
+            "status": "disabled",
+        }
+
     with open(pipeline_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
@@ -2484,9 +2652,20 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     log(f"Pipeline: {pipeline_name} ({len(steps)} steps)")
 
     run_dir = ROOT / "output" / run_id
-    ensure_dir(run_dir)
 
     log(f"Output directory: {run_dir}")
+
+    def _is_voiceover_tts_dry_run(step_cfg: dict) -> bool:
+        if step_cfg.get("uses") != "voiceover.tts":
+            return False
+        config = step_cfg.get("config")
+        if not isinstance(config, dict):
+            return False
+        return bool(config.get("dry_run", False))
+
+    dry_run_only_pipeline = bool(steps) and all(
+        _is_voiceover_tts_dry_run(step_cfg) for step_cfg in steps
+    )
 
     results = {}
 
@@ -2502,8 +2681,17 @@ def run_pipeline(pipeline_path: Path, run_id: str):
             raise RuntimeError(f"Agent not implemented: {uses}")
 
         try:
-            result_path = agent_func(step, run_dir)
-            results[step_id] = {"status": "success", "output": str(result_path)}
+            result = agent_func(step, run_dir)
+            output_path = result
+            planned_paths = None
+            if isinstance(result, PlannedArtifacts):
+                output_path = result.output_path
+                if dry_run_only_pipeline:
+                    planned_paths = result.planned_paths
+            entry = {"status": "success", "output": str(output_path)}
+            if planned_paths is not None:
+                entry["planned_paths"] = planned_paths
+            results[step_id] = entry
             log(f"[{i}/{len(steps)}] ✓ {step_id} completed", "SUCCESS")
         except Exception as e:
             log(f"ERROR in {step_id}: {e}", "ERROR")
@@ -2521,6 +2709,12 @@ def run_pipeline(pipeline_path: Path, run_id: str):
         "results": results,
         "output_dir": str(run_dir),
     }
+
+    if dry_run_only_pipeline:
+        log("=" * 60)
+        log("Pipeline completed (dry run) - no files were written")
+        log("=" * 60)
+        return summary
 
     summary_path = run_dir / "pipeline_summary.json"
     write_json(summary_path, summary)
