@@ -2843,7 +2843,6 @@ def agent_youtube_upload(step, run_dir: Path):
             f"YouTube upload failed for run_id={run_id}; code={CODE_INPUT_MP4_MISSING}"
         )
 
-    title, description, tags = _resolve_metadata()
     total_attempts = 1 + max_retries
     attempt = 0
     while attempt < total_attempts:
