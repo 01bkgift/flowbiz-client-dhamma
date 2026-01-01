@@ -327,13 +327,12 @@ def run_worker(
         # ป้องกัน path traversal โดย resolve path และตรวจสอบว่าต้องอยู่ภายใน base_dir เท่านั้น
         base_dir_resolved = base_dir.resolve()
         pipeline_path_obj = pipeline_path_obj.resolve()
-        common_path = os.path.commonpath(
-            [str(base_dir_resolved), str(pipeline_path_obj)]
-        )
-        if common_path != str(base_dir_resolved):
+        try:
+            pipeline_path_obj.relative_to(base_dir_resolved)
+        except ValueError as exc:
             raise ValueError(
                 f"invalid pipeline path outside base dir: {pipeline_path_obj}"
-            )
+            ) from exc
         pipeline_runner(pipeline_path_obj, item.job.run_id)
         queue.mark_done(item)
         summary = _build_worker_summary(

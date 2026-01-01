@@ -12,7 +12,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from automation_core.queue import FileQueue, JobSpec
 
@@ -30,6 +30,18 @@ class ScheduleEntry(BaseModel):
     pipeline_path: str = Field(..., min_length=1)
     run_id_prefix: str | None = None
     params: dict[str, Any] | None = None
+
+    @field_validator("pipeline_path")
+    @classmethod
+    def _validate_pipeline_path(cls, value: str) -> str:
+        """ตรวจสอบ pipeline_path ต้องเป็น relative path และห้ามมี path traversal"""
+
+        path = Path(value)
+        if path.is_absolute() or path.drive or path.root:
+            raise ValueError("pipeline_path must be relative")
+        if any(part == ".." for part in path.parts):
+            raise ValueError("pipeline_path must not contain '..'")
+        return value
 
 
 class RawSchedulePlan(BaseModel):
@@ -229,7 +241,24 @@ def schedule_due_jobs(
             )
             continue
 
-        if queue.exists(job.job_id):
+        if dry_run:
+            if queue.exists(job.job_id):
+                skipped_entries.append(
+                    ScheduleSkip(
+                        publish_at=entry.publish_at,
+                        pipeline_path=entry.pipeline_path,
+                        run_id=job.run_id,
+                        code="already_enqueued",
+                        message="job already exists",
+                    )
+                )
+            else:
+                enqueued_job_ids.append(job.job_id)
+            continue
+
+        if queue.enqueue(job):
+            enqueued_job_ids.append(job.job_id)
+        else:
             skipped_entries.append(
                 ScheduleSkip(
                     publish_at=entry.publish_at,
@@ -239,25 +268,6 @@ def schedule_due_jobs(
                     message="job already exists",
                 )
             )
-            continue
-
-        if dry_run:
-            enqueued_job_ids.append(job.job_id)
-            continue
-
-        if queue.enqueue(job):
-            enqueued_job_ids.append(job.job_id)
-            continue
-
-        skipped_entries.append(
-            ScheduleSkip(
-                publish_at=entry.publish_at,
-                pipeline_path=entry.pipeline_path,
-                run_id=job.run_id,
-                code="already_enqueued",
-                message="job already exists",
-            )
-        )
 
     return ScheduleResult(
         timezone=tz_name,

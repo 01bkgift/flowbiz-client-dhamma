@@ -194,3 +194,45 @@ def test_scheduler_malformed_yaml(tmp_path):
             scheduler_enabled=True,
             created_at_utc=now_utc,
         )
+
+
+@pytest.mark.parametrize(
+    "pipeline_path",
+    [
+        "../pipeline.web.yml",
+        "/abs/pipeline.web.yml",
+    ],
+)
+def test_scheduler_rejects_pipeline_path_traversal(tmp_path, pipeline_path: str):
+    """ทดสอบว่า ScheduleEntry ปฏิเสธ path traversal/absolute path"""
+
+    plan_path = tmp_path / "schedule_plan.yaml"
+    plan_path.write_text(
+        "\n".join(
+            [
+                'schema_version: "v1"',
+                'timezone: "Asia/Bangkok"',
+                "entries:",
+                '  - publish_at: "2026-01-01T10:00"',
+                f'    pipeline_path: "{pipeline_path}"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    queue = FileQueue(tmp_path / "queue")
+    now_utc = datetime(2026, 1, 1, 3, 0, tzinfo=UTC)
+
+    result = schedule_due_jobs(
+        plan_path=plan_path,
+        queue=queue,
+        now_utc=now_utc,
+        window_minutes=10,
+        dry_run=True,
+        scheduler_enabled=True,
+        created_at_utc=now_utc,
+    )
+
+    assert result.enqueued_job_ids == []
+    assert len(result.skipped_entries) == 1
+    assert result.skipped_entries[0].code == "job_invalid"

@@ -156,7 +156,7 @@
 - `dry_run` (bool)
 
 **รูปแบบ error (คงที่เมื่อไม่เป็น null):**
-- `code` (string, one of: `worker_disabled`, `pipeline_disabled`, `queue_empty`, `job_invalid`, `orchestrator_failed`)
+- `code` (string, one of: `worker_disabled`, `queue_empty`, `job_invalid`, `orchestrator_failed`)
 - `message` (string)
 
 ## รายการอ้างอิงที่รวมไว้ (samples/reference)

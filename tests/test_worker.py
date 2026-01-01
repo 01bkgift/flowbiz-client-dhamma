@@ -144,3 +144,35 @@ def test_pipeline_disabled_no_side_effects(tmp_path, monkeypatch):
     assert worker_summary is None
     assert scheduler_summary is None
     assert not (tmp_path / "output").exists()
+
+
+def test_worker_rejects_pipeline_path_outside_base_dir(tmp_path, monkeypatch):
+    runner = _load_runner()
+    monkeypatch.setenv("PIPELINE_ENABLED", "true")
+    monkeypatch.setenv("WORKER_ENABLED", "true")
+
+    queue = FileQueue(tmp_path / "queue")
+    job = _build_job(
+        "job-bad-path",
+        datetime(2026, 1, 1, 0, 0, tzinfo=UTC),
+        "run_bad",
+    ).model_copy(update={"pipeline_path": "../outside.yml"})
+    queue.enqueue(job)
+
+    called = {"count": 0}
+
+    def _runner_stub(*_args):
+        called["count"] += 1
+
+    summary = runner.run_worker(
+        queue_dir=tmp_path / "queue",
+        dry_run=False,
+        base_dir=tmp_path,
+        pipeline_runner=_runner_stub,
+    )
+
+    assert summary is not None
+    assert summary["decision"] == "failed"
+    assert summary["error"]["code"] == "orchestrator_failed"
+    assert called["count"] == 0
+    assert list(queue.failed_dir.glob("*.json"))
