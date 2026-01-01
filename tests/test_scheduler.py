@@ -25,7 +25,7 @@ def _write_plan(path: Path) -> None:
                 '    pipeline_path: "pipeline.web.yml"',
                 '  - publish_at: "2026-01-01T10:05+07:00"',
                 '    pipeline_path: "pipeline.web.yml"',
-                '    run_id_prefix: "evening"',
+                '    run_id_prefix: "mid_morning"',
                 '  - publish_at: "2026-01-01T10:30"',
                 '    pipeline_path: "pipeline.web.yml"',
             ]
