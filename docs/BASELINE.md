@@ -133,6 +133,11 @@
 - `skipped_entries` (list[object], ลำดับต้องคงที่)
 - `dry_run` (bool)
 
+**หมายเหตุสำคัญ (ops/determinism):**
+- `checked_at` คือเวลาที่รันจริง (audit time) จึงไม่ deterministic
+- `plan_path` ต้องเป็น relative path เท่านั้น และ **ห้ามเป็น absolute**
+  - ถ้า input ของ `--plan` ไม่ถูกต้อง (เช่น absolute path) ให้ `plan_path` เป็น `""` และ `skipped_entries[0].code = "plan_parse_error"`
+
 **รูปแบบ skipped_entries (คงที่):**
 - `publish_at` (string)
 - `pipeline_path` (string)
@@ -150,10 +155,15 @@
 - `checked_at` (string, ISO8601 UTC)
 - `job_id` (string)
 - `run_id` (string)
-- `pipeline_path` (string, relative path)
+- `pipeline_path` (string)
 - `decision` (`done` | `failed` | `skipped`)
 - `error` (object|null)
 - `dry_run` (bool)
+
+**หมายเหตุสำคัญ:**
+- ปกติ `pipeline_path` ต้องเป็น relative path (string)
+- กรณีไม่มีงานในคิว (`job_id = "none"`) หรือ payload งานไม่สมบูรณ์ (`job_invalid`) อาจได้ `run_id = ""` และ `pipeline_path = ""`
+- กรณีไม่มีงานในคิว จะสร้าง artifact เป็น `output/worker/artifacts/worker_summary_none.json` (ถือว่าเป็นเคสพิเศษของ `worker_summary_<job_id>.json`)
 
 **รูปแบบ error (คงที่เมื่อไม่เป็น null):**
 - `code` (string, one of: `worker_disabled`, `queue_empty`, `job_invalid`, `orchestrator_failed`)

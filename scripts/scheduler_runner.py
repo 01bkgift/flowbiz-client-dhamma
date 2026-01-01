@@ -101,7 +101,7 @@ def _worker_summary_path(base_dir: Path, job_id: str) -> Path:
 
 
 def _build_schedule_summary(
-    plan_path: Path,
+    plan_path: Path | None,
     now_utc: datetime,
     window_minutes: int,
     enqueued_job_ids: list[str],
@@ -113,7 +113,7 @@ def _build_schedule_summary(
         "schema_version": "v1",
         "engine": "scheduler",
         "checked_at": _utc_iso(_utc_now()),
-        "plan_path": _relative_path(base_dir, plan_path),
+        "plan_path": "" if plan_path is None else _relative_path(base_dir, plan_path),
         "now": _utc_iso(now_utc),
         "window_minutes": window_minutes,
         "enqueued_job_ids": enqueued_job_ids,
@@ -143,6 +143,29 @@ def run_schedule(
         now_utc = now_utc.replace(tzinfo=UTC)
     else:
         now_utc = now_utc.astimezone(UTC)
+
+    plan_path_obj = Path(plan_path)
+    if plan_path_obj.is_absolute():
+        summary = _build_schedule_summary(
+            plan_path=None,
+            now_utc=now_utc,
+            window_minutes=window_minutes,
+            enqueued_job_ids=[],
+            skipped_entries=[
+                {
+                    "publish_at": "",
+                    "pipeline_path": "",
+                    "run_id": "",
+                    "code": "plan_parse_error",
+                    "message": "plan_path must be a relative path",
+                }
+            ],
+            dry_run=dry_run,
+            base_dir=base_dir,
+        )
+        summary_path = _schedule_summary_path(base_dir, now_utc, DEFAULT_TIMEZONE)
+        _write_json(summary_path, summary)
+        return summary
 
     plan_path = _resolve_path(base_dir, plan_path)
     queue_dir = _resolve_path(base_dir, queue_dir)
