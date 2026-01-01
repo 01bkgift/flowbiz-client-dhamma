@@ -9,6 +9,7 @@
 """
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from automation_core.queue import FileQueue, JobError, JobSpec
 
@@ -32,7 +33,7 @@ def _build_job(job_id: str, scheduled_for: datetime, run_id: str) -> JobSpec:
     )
 
 
-def test_enqueue_idempotent(tmp_path):
+def test_enqueue_idempotent(tmp_path: Path):
     queue = FileQueue(tmp_path / "queue")
     now = datetime(2026, 1, 1, 0, 0, tzinfo=UTC)
     job = _build_job("job-001", now, "run_001")
@@ -45,7 +46,7 @@ def test_enqueue_idempotent(tmp_path):
     assert pending[0].job_id == "job-001"
 
 
-def test_fifo_ordering_by_schedule(tmp_path):
+def test_fifo_ordering_by_schedule(tmp_path: Path):
     queue = FileQueue(tmp_path / "queue")
     now = datetime(2026, 1, 1, 0, 0, tzinfo=UTC)
     job_early = _build_job("job-early", now, "run_early")
@@ -58,7 +59,7 @@ def test_fifo_ordering_by_schedule(tmp_path):
     assert [item.job_id for item in pending] == ["job-early", "job-late"]
 
 
-def test_state_transitions(tmp_path):
+def test_state_transitions(tmp_path: Path):
     queue = FileQueue(tmp_path / "queue")
     now = datetime(2026, 1, 1, 0, 0, tzinfo=UTC)
     job_done = _build_job("job-done", now, "run_done")
@@ -91,7 +92,7 @@ def test_state_transitions(tmp_path):
     assert (queue.failed_dir / failed_item.filename).exists()
 
 
-def test_enqueue_idempotent_across_states(tmp_path):
+def test_enqueue_idempotent_across_states(tmp_path: Path):
     queue = FileQueue(tmp_path / "queue")
     now = datetime(2026, 1, 1, 0, 0, tzinfo=UTC)
     job_done = _build_job("job-done", now, "run_done")
@@ -113,7 +114,7 @@ def test_enqueue_idempotent_across_states(tmp_path):
     assert queue.enqueue(job_failed) is False
 
 
-def test_enqueue_dry_run_mode(tmp_path):
+def test_enqueue_dry_run_mode(tmp_path: Path):
     """
     ทดสอบ dry_run mode ของ enqueue
 

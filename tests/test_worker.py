@@ -3,6 +3,7 @@
 import importlib.util
 from datetime import UTC, datetime
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -28,7 +29,7 @@ def _build_job(job_id: str, scheduled_for: datetime, run_id: str) -> JobSpec:
     )
 
 
-def _load_runner():
+def _load_runner() -> ModuleType:
     runner_path = Path(__file__).parent.parent / "scripts" / "scheduler_runner.py"
     spec = importlib.util.spec_from_file_location("scheduler_runner", runner_path)
     module = importlib.util.module_from_spec(spec)
@@ -38,11 +39,11 @@ def _load_runner():
 
 
 @pytest.fixture(autouse=True)
-def _set_env(monkeypatch):
+def _set_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("YOUTUBE_UPLOAD_ENABLED", "false")
 
 
-def test_worker_queue_empty(tmp_path, monkeypatch):
+def test_worker_queue_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     runner = _load_runner()
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
     monkeypatch.setenv("WORKER_ENABLED", "true")
@@ -60,7 +61,9 @@ def test_worker_queue_empty(tmp_path, monkeypatch):
     assert (tmp_path / "output" / "worker" / "artifacts").exists()
 
 
-def test_worker_dry_run_no_orchestrator(tmp_path, monkeypatch):
+def test_worker_dry_run_no_orchestrator(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     runner = _load_runner()
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
     monkeypatch.setenv("WORKER_ENABLED", "false")
@@ -88,7 +91,7 @@ def test_worker_dry_run_no_orchestrator(tmp_path, monkeypatch):
     assert len(queue.list_pending()) == 1
 
 
-def test_worker_runs_once(tmp_path, monkeypatch):
+def test_worker_runs_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     runner = _load_runner()
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
     monkeypatch.setenv("WORKER_ENABLED", "true")
@@ -120,7 +123,9 @@ def test_worker_runs_once(tmp_path, monkeypatch):
     assert list(queue.done_dir.glob("*.json"))
 
 
-def test_pipeline_disabled_no_side_effects(tmp_path, monkeypatch):
+def test_pipeline_disabled_no_side_effects(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     runner = _load_runner()
     monkeypatch.setenv("PIPELINE_ENABLED", "false")
     monkeypatch.setenv("WORKER_ENABLED", "true")
@@ -146,7 +151,9 @@ def test_pipeline_disabled_no_side_effects(tmp_path, monkeypatch):
     assert not (tmp_path / "output").exists()
 
 
-def test_worker_rejects_pipeline_path_outside_base_dir(tmp_path, monkeypatch):
+def test_worker_rejects_pipeline_path_outside_base_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     runner = _load_runner()
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
     monkeypatch.setenv("WORKER_ENABLED", "true")

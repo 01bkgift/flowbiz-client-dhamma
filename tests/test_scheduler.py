@@ -35,7 +35,7 @@ def _write_plan(path: Path) -> None:
     )
 
 
-def test_scheduler_due_selection_deterministic(tmp_path):
+def test_scheduler_due_selection_deterministic(tmp_path: Path):
     plan_path = tmp_path / "schedule_plan.yaml"
     _write_plan(plan_path)
 
@@ -75,7 +75,7 @@ def test_scheduler_due_selection_deterministic(tmp_path):
     assert repeat.enqueued_job_ids == result.enqueued_job_ids
 
 
-def test_scheduler_invalid_timezone(tmp_path):
+def test_scheduler_invalid_timezone(tmp_path: Path):
     """ทดสอบการจัดการ timezone ที่ไม่ถูกต้อง"""
     plan_path = tmp_path / "schedule_plan.yaml"
     plan_path.write_text(
@@ -106,7 +106,7 @@ def test_scheduler_invalid_timezone(tmp_path):
         )
 
 
-def test_scheduler_invalid_publish_at(tmp_path):
+def test_scheduler_invalid_publish_at(tmp_path: Path):
     """ทดสอบการจัดการรูปแบบ publish_at ที่ไม่ถูกต้อง"""
     plan_path = tmp_path / "schedule_plan.yaml"
     plan_path.write_text(
@@ -141,7 +141,7 @@ def test_scheduler_invalid_publish_at(tmp_path):
     assert result.skipped_entries[0].code == "job_invalid"
 
 
-def test_scheduler_missing_required_fields(tmp_path):
+def test_scheduler_missing_required_fields(tmp_path: Path):
     """ทดสอบการจัดการเมื่อขาดฟิลด์ที่จำเป็น"""
     plan_path = tmp_path / "schedule_plan.yaml"
     plan_path.write_text(
@@ -176,7 +176,7 @@ def test_scheduler_missing_required_fields(tmp_path):
     assert result.skipped_entries[0].code == "job_invalid"
 
 
-def test_scheduler_malformed_yaml(tmp_path):
+def test_scheduler_malformed_yaml(tmp_path: Path):
     """ทดสอบการจัดการ YAML ที่ไม่ถูกต้อง"""
     plan_path = tmp_path / "schedule_plan.yaml"
     plan_path.write_text("invalid: yaml: [content", encoding="utf-8")
@@ -203,7 +203,7 @@ def test_scheduler_malformed_yaml(tmp_path):
         "/abs/pipeline.web.yml",
     ],
 )
-def test_scheduler_rejects_pipeline_path_traversal(tmp_path, pipeline_path: str):
+def test_scheduler_rejects_pipeline_path_traversal(tmp_path: Path, pipeline_path: str):
     """ทดสอบว่า ScheduleEntry ปฏิเสธ path traversal/absolute path"""
 
     plan_path = tmp_path / "schedule_plan.yaml"
@@ -238,7 +238,7 @@ def test_scheduler_rejects_pipeline_path_traversal(tmp_path, pipeline_path: str)
     assert result.skipped_entries[0].code == "job_invalid"
 
 
-def test_scheduler_dry_run_matches_actual_run(tmp_path):
+def test_scheduler_dry_run_matches_actual_run(tmp_path: Path):
     """
     ทดสอบว่า dry_run ให้ผลลัพธ์ที่ตรงกับ actual run
 
