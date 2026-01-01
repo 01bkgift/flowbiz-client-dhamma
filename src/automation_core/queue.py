@@ -137,6 +137,8 @@ class FileQueue:
         """เพิ่มงานลงคิวแบบ idempotent"""
 
         self._ensure_dirs()
+        if self.exists(job.job_id):
+            return False
         pending_job = job.model_copy(update={"status": "pending", "last_error": None})
         target_path = self.pending_dir / self._build_filename(pending_job)
         payload = json.dumps(pending_job.model_dump(), ensure_ascii=False, indent=2)

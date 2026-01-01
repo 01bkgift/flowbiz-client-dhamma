@@ -89,3 +89,25 @@ def test_state_transitions(tmp_path):
     assert failed_item.job.last_error is not None
     assert failed_item.job.last_error.code == "test_error"
     assert (queue.failed_dir / failed_item.filename).exists()
+
+
+def test_enqueue_idempotent_across_states(tmp_path):
+    queue = FileQueue(tmp_path / "queue")
+    now = datetime(2026, 1, 1, 0, 0, tzinfo=UTC)
+    job_done = _build_job("job-done", now, "run_done")
+    job_failed = _build_job("job-failed", now + timedelta(minutes=1), "run_fail")
+
+    assert queue.enqueue(job_done) is True
+    assert queue.enqueue(job_failed) is True
+
+    first = queue.dequeue_next()
+    assert first is not None
+    queue.mark_done(first)
+
+    second = queue.dequeue_next()
+    assert second is not None
+    queue.mark_failed(second, JobError(code="test_error", message="fail"))
+
+    # ห้าม enqueue ซ้ำ แม้งานจะอยู่ใน done/failed แล้ว
+    assert queue.enqueue(job_done) is False
+    assert queue.enqueue(job_failed) is False
