@@ -1,0 +1,7 @@
+# Requires: output/<run_id>/artifacts/quality_gate_summary.json
+pipeline: youtube_upload_smoke_requires_quality
+steps:
+  - id: youtube_upload
+    uses: youtube.upload
+    config:
+      dry_run: true

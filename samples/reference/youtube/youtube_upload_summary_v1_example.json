@@ -1,0 +1,28 @@
+{
+  "schema_version": "v1",
+  "run_id": "baseline_youtube_upload",
+  "engine": "youtube.upload",
+  "checked_at": "2025-01-01T00:00:00Z",
+  "quality_gate_summary": "output/baseline_youtube_upload/artifacts/quality_gate_summary.json",
+  "input_mp4_path": "output/baseline_youtube_upload/artifacts/final.mp4",
+  "decision": "skipped",
+  "privacy_status": "unlisted",
+  "attempt_count": 0,
+  "max_retries": 3,
+  "backoff_seconds": 10,
+  "video_id": null,
+  "video_url": null,
+  "error": {
+    "code": "upload_disabled",
+    "message": "YouTube upload disabled"
+  },
+  "metadata": {
+    "title": "ตัวอย่างชื่อวิดีโอธรรมะ",
+    "description": "ตัวอย่างคำอธิบายวิดีโอ",
+    "tags": [
+      "ธรรมะ",
+      "สมาธิ",
+      "การเจริญสติ"
+    ]
+  }
+}

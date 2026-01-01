@@ -95,6 +95,10 @@ FLOWBIZ_BUILD_SHA="dev"
 - ❌ NEVER expose ports directly to the internet
 - ✅ System Nginx is the ONLY public-facing reverse proxy
 
+## Content Integrity (Metadata)
+
+- Do not translate/rewrite metadata; preserve as-is when reading, writing, or uploading.
+
 ## Runtime Contract
 
 ### Startup

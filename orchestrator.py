@@ -21,6 +21,8 @@ SRC_ROOT = ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from automation_core import youtube_upload  # noqa: E402
+
 
 def ensure_dir(p: Path):
     """สร้างโฟลเดอร์ถ้ายังไม่มี"""
@@ -2484,6 +2486,443 @@ def agent_quality_gate(step, run_dir: Path):
     return summary_out.relative_to(root_dir).as_posix()
 
 
+def _youtube_upload_parse_int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value >= 0 else default
+
+
+def _youtube_upload_is_enabled(step_cfg: dict) -> bool:
+    config = step_cfg.get("config")
+    if config is not None and not isinstance(config, dict):
+        raise TypeError("step.config must be an object")
+    if isinstance(config, dict) and "dry_run" in config:
+        dry_run = config.get("dry_run")
+        if not isinstance(dry_run, bool):
+            raise TypeError("config.dry_run must be a boolean")
+        if dry_run:
+            return False
+    return os.environ.get("YOUTUBE_UPLOAD_ENABLED", "false").strip().lower() == "true"
+
+
+def _youtube_upload_expected_quality_summary_rel(run_id: str) -> str:
+    return (
+        Path("output") / run_id / "artifacts" / "quality_gate_summary.json"
+    ).as_posix()
+
+
+def _youtube_upload_load_quality_summary_required(root_dir: Path, run_id: str) -> dict:
+    quality_rel = _youtube_upload_expected_quality_summary_rel(run_id)
+    quality_path = root_dir / quality_rel
+    try:
+        payload = read_json(quality_path)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Quality gate summary not found: {quality_rel}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise TypeError("quality_gate_summary must be a JSON object")
+    schema_version = payload.get("schema_version")
+    if schema_version != "v1":
+        raise ValueError("quality_gate_summary.schema_version must be 'v1'")
+    summary_run_id = payload.get("run_id")
+    if summary_run_id is not None and summary_run_id != run_id:
+        raise ValueError("quality_gate_summary.run_id does not match run_id")
+    return payload
+
+
+def _youtube_upload_try_load_quality_summary(
+    root_dir: Path, run_id: str
+) -> dict | None:
+    quality_rel = _youtube_upload_expected_quality_summary_rel(run_id)
+    quality_path = root_dir / quality_rel
+    if not quality_path.is_file():
+        return None
+    try:
+        payload = read_json(quality_path)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("schema_version") != "v1":
+        return None
+    return payload
+
+
+def _youtube_upload_validate_repo_relative_path(
+    root_dir: Path,
+    value: str,
+    label: str,
+) -> Path:
+    rel = Path(Path(value).as_posix())
+    if rel.is_absolute():
+        raise ValueError(f"{label} must be a relative path")
+    if ".." in rel.parts:
+        raise ValueError(f"{label} must not contain path traversal")
+    abs_path = (root_dir / rel).resolve()
+    try:
+        abs_path.relative_to(root_dir)
+    except ValueError as exc:
+        raise ValueError(f"{label} must be within repository root") from exc
+    return abs_path
+
+
+def _youtube_upload_read_json_if_dict(path: Path) -> dict | None:
+    if not path.is_file():
+        return None
+    try:
+        payload = read_json(path)
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _youtube_upload_parse_tags_text(text: str) -> list[str]:
+    """แปลงข้อความแท็กจากไฟล์ override
+
+    รูปแบบที่รองรับ: JSON array ของสตริงเท่านั้น เช่น ["tag1", "tag2"]
+    """
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return []
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, str)]
+    return []
+
+
+def _youtube_upload_resolve_override_path(root_dir: Path, env_name: str) -> Path | None:
+    raw = os.environ.get(env_name)
+    if raw is None:
+        return None
+    value = raw.strip()
+    if not value:
+        return None
+    return _youtube_upload_validate_repo_relative_path(root_dir, value, env_name)
+
+
+def _youtube_upload_read_override_text(path: Path, env_name: str) -> str:
+    max_bytes = 65_536
+    try:
+        size = path.stat().st_size
+    except OSError as exc:
+        raise ValueError(f"Unable to read override file for {env_name}") from exc
+    if size > max_bytes:
+        raise ValueError(
+            f"Override file for {env_name} is too large (>{max_bytes} bytes)"
+        )
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            f"Override file for {env_name} must be valid UTF-8 text"
+        ) from exc
+    except OSError as exc:
+        raise ValueError(f"Unable to read override file for {env_name}") from exc
+
+
+def _youtube_upload_resolve_metadata(
+    root_dir: Path, run_id: str
+) -> tuple[str, str, list[str]]:
+    title = None
+    description = None
+    tags: list[str] | None = None
+
+    metadata_path = root_dir / "output" / run_id / "metadata.json"
+    metadata = _youtube_upload_read_json_if_dict(metadata_path)
+    if metadata:
+        raw_title = metadata.get("title")
+        if isinstance(raw_title, str) and raw_title != "":
+            title = raw_title
+        raw_description = metadata.get("description")
+        if isinstance(raw_description, str) and raw_description != "":
+            description = raw_description
+        raw_tags = metadata.get("tags")
+        if isinstance(raw_tags, list):
+            tags = [item for item in raw_tags if isinstance(item, str)]
+
+    if title is None:
+        title_path = _youtube_upload_resolve_override_path(
+            root_dir, "YOUTUBE_TITLE_PATH"
+        )
+        if title_path is not None:
+            title = _youtube_upload_read_override_text(title_path, "YOUTUBE_TITLE_PATH")
+
+    if description is None:
+        description_path = _youtube_upload_resolve_override_path(
+            root_dir, "YOUTUBE_DESCRIPTION_PATH"
+        )
+        if description_path is not None:
+            description = _youtube_upload_read_override_text(
+                description_path, "YOUTUBE_DESCRIPTION_PATH"
+            )
+
+    if tags is None:
+        tags_path = _youtube_upload_resolve_override_path(root_dir, "YOUTUBE_TAGS_PATH")
+        if tags_path is not None:
+            tags_text = _youtube_upload_read_override_text(
+                tags_path, "YOUTUBE_TAGS_PATH"
+            )
+            tags = _youtube_upload_parse_tags_text(tags_text)
+
+    if title is None:
+        title = f"Dhamma Video - {run_id}"
+    if description is None:
+        description = "Generated by Dhamma Channel Automation."
+    if tags is None:
+        tags = []
+
+    return title, description, tags
+
+
+def _youtube_upload_extract_http_status(exc: Exception) -> int | None:
+    if isinstance(exc, youtube_upload.YoutubeApiError):
+        return exc.status
+    for attr in ("status", "status_code"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, int):
+            return value
+    resp = getattr(exc, "resp", None)
+    status = getattr(resp, "status", None)
+    if isinstance(status, int):
+        return status
+    return None
+
+
+def agent_youtube_upload(step, run_dir: Path):
+    """เอเจนต์อัปโหลด YouTube - อัปโหลดไฟล์ MP4 ขึ้น YouTube พร้อม retry และสรุปผลลัพธ์
+
+    หมายเหตุ: ควรถูกเรียกผ่าน orchestrator เท่านั้น เพื่อให้ guardrails เช่น
+    `PIPELINE_ENABLED` ถูกบังคับใช้อย่างถูกต้อง
+    """
+    run_id = run_dir.name
+    root_dir = ROOT.resolve()
+
+    YU_ENGINE = "youtube.upload"
+    CODE_UPLOAD_DISABLED = "upload_disabled"
+    CODE_QUALITY_NOT_PASS = "quality_gate_not_pass"
+    CODE_INPUT_MP4_MISSING = "input_mp4_missing"
+    CODE_AUTH_MISSING_ENV = "auth_missing_env"
+    CODE_DEPS_MISSING = "youtube_deps_missing"
+    CODE_YOUTUBE_API_ERROR = "youtube_api_error"
+    CODE_FAILED_AFTER_RETRIES = "upload_failed_after_retries"
+
+    upload_enabled = _youtube_upload_is_enabled(step)
+    max_retries = _youtube_upload_parse_int_env("YOUTUBE_UPLOAD_MAX_RETRIES", 3)
+    backoff_seconds = _youtube_upload_parse_int_env(
+        "YOUTUBE_UPLOAD_BACKOFF_SECONDS", 10
+    )
+    privacy_status_raw = (
+        os.environ.get("YOUTUBE_PRIVACY_STATUS", "unlisted").strip().lower()
+    )
+    if privacy_status_raw not in ("private", "unlisted", "public"):
+        log(
+            f"Invalid YOUTUBE_PRIVACY_STATUS='{privacy_status_raw}', falling back to 'unlisted'",
+            "WARN",
+        )
+        privacy_status = "unlisted"
+    else:
+        privacy_status = privacy_status_raw
+
+    checked_at = datetime.now(tz=UTC).isoformat().replace("+00:00", "Z")
+    upload_summary_rel = (
+        Path("output") / run_id / "artifacts" / "youtube_upload_summary.json"
+    )
+    upload_summary_path = root_dir / upload_summary_rel
+
+    title, description, tags = _youtube_upload_resolve_metadata(root_dir, run_id)
+    quality_rel = _youtube_upload_expected_quality_summary_rel(run_id)
+
+    output_mp4_rel = ""
+
+    def _write_summary(
+        decision: str,
+        attempt_count: int,
+        error_code: str | None = None,
+        error_message: str | None = None,
+        video_id: str | None = None,
+    ) -> str:
+        video_url = None
+        if video_id:
+            video_url = f"https://www.youtube.com/watch?v={video_id}"
+        error = None
+        if error_code is not None:
+            error = {
+                "code": error_code,
+                "message": error_message or "",
+            }
+
+        summary = {
+            "schema_version": "v1",
+            "run_id": run_id,
+            "engine": YU_ENGINE,
+            "checked_at": checked_at,
+            "quality_gate_summary": quality_rel,
+            "input_mp4_path": output_mp4_rel,
+            "decision": decision,
+            "privacy_status": privacy_status,
+            "attempt_count": attempt_count,
+            "max_retries": max_retries,
+            "backoff_seconds": backoff_seconds,
+            "video_id": video_id,
+            "video_url": video_url,
+            "error": error,
+            "metadata": {
+                "title": title,
+                "description": description,
+                "tags": tags,
+            },
+        }
+        write_json(upload_summary_path, summary)
+        return upload_summary_rel.as_posix()
+
+    if not upload_enabled:
+        summary_path = _write_summary(
+            decision="skipped",
+            attempt_count=0,
+            error_code=CODE_UPLOAD_DISABLED,
+            error_message="YouTube upload disabled",
+        )
+        log(
+            f"YouTube upload skipped; decision=skipped; code={CODE_UPLOAD_DISABLED}; attempt=0",
+            "INFO",
+        )
+        return summary_path
+
+    quality_summary_required = _youtube_upload_load_quality_summary_required(
+        root_dir, run_id
+    )
+    quality_decision = quality_summary_required.get("decision")
+
+    # Extract and validate output_mp4_path from quality summary (once)
+    output_mp4_value = quality_summary_required.get("output_mp4_path")
+    if isinstance(output_mp4_value, str) and output_mp4_value:
+        output_mp4_rel = Path(output_mp4_value).as_posix()
+        output_mp4_abs = _youtube_upload_validate_repo_relative_path(
+            root_dir, output_mp4_rel, "quality_gate_summary.output_mp4_path"
+        )
+    else:
+        if quality_decision == "pass":
+            raise ValueError("quality_gate_summary.output_mp4_path is required")
+        output_mp4_abs = None
+
+    if quality_decision != "pass":
+        summary_path = _write_summary(
+            decision="skipped",
+            attempt_count=0,
+            error_code=CODE_QUALITY_NOT_PASS,
+            error_message="Quality gate decision not pass",
+        )
+        log(
+            f"YouTube upload skipped; decision=skipped; code={CODE_QUALITY_NOT_PASS}; attempt=0",
+            "INFO",
+        )
+        return summary_path
+
+    # At this point, quality_decision == "pass" and output_mp4_abs must be valid
+    if output_mp4_abs is None:
+        raise ValueError("quality_gate_summary.output_mp4_path is required")
+
+    if not output_mp4_abs.is_file() or output_mp4_abs.stat().st_size <= 0:
+        _write_summary(
+            decision="failed",
+            attempt_count=0,
+            error_code=CODE_INPUT_MP4_MISSING,
+            error_message="Input MP4 missing or empty",
+        )
+        log(
+            f"YouTube upload failed; decision=failed; code={CODE_INPUT_MP4_MISSING}; attempt=0",
+            "ERROR",
+        )
+        raise RuntimeError(
+            f"YouTube upload failed for run_id={run_id}; code={CODE_INPUT_MP4_MISSING}"
+        )
+
+    total_attempts = 1 + max_retries
+    attempt = 0
+    while attempt < total_attempts:
+        attempt += 1
+        try:
+            video_id = youtube_upload.upload_video(
+                output_mp4_abs, title, description, tags, privacy_status
+            )
+            summary_path = _write_summary(
+                decision="uploaded",
+                attempt_count=attempt,
+                video_id=video_id,
+            )
+            log(
+                f"YouTube upload completed; decision=uploaded; attempt={attempt}",
+                "SUCCESS",
+            )
+            return summary_path
+        except youtube_upload.YoutubeDepsMissingError as exc:
+            _write_summary(
+                decision="failed",
+                attempt_count=attempt,
+                error_code=CODE_DEPS_MISSING,
+                error_message="YouTube dependencies are not installed",
+            )
+            log(
+                f"YouTube upload failed; decision=failed; code={CODE_DEPS_MISSING}; attempt={attempt}",
+                "ERROR",
+            )
+            raise RuntimeError(
+                f"YouTube upload failed for run_id={run_id}; code={CODE_DEPS_MISSING}"
+            ) from exc
+        except youtube_upload.YoutubeAuthMissingError as exc:
+            _write_summary(
+                decision="failed",
+                attempt_count=attempt,
+                error_code=CODE_AUTH_MISSING_ENV,
+                error_message="Missing YouTube auth environment variables",
+            )
+            log(
+                f"YouTube upload failed; decision=failed; code={CODE_AUTH_MISSING_ENV}; attempt={attempt}",
+                "ERROR",
+            )
+            raise RuntimeError(
+                f"YouTube upload failed for run_id={run_id}; code={CODE_AUTH_MISSING_ENV}"
+            ) from exc
+        except Exception as exc:
+            status = _youtube_upload_extract_http_status(exc)
+            retryable = status == 429 or (status is not None and 500 <= status < 600)
+            if retryable and attempt < total_attempts:
+                log(
+                    "YouTube upload attempt "
+                    f"{attempt}/{total_attempts} failed; decision=retry; code={CODE_YOUTUBE_API_ERROR}",
+                    "WARN",
+                )
+                time.sleep(backoff_seconds)
+                continue
+
+            if retryable:
+                error_code = CODE_FAILED_AFTER_RETRIES
+                error_message = "YouTube upload failed after retries"
+            else:
+                error_code = CODE_YOUTUBE_API_ERROR
+                error_message = "YouTube API error"
+
+            _write_summary(
+                decision="failed",
+                attempt_count=attempt,
+                error_code=error_code,
+                error_message=error_message,
+            )
+            log(
+                f"YouTube upload failed; decision=failed; code={error_code}; attempt={attempt}",
+                "ERROR",
+            )
+            raise RuntimeError(
+                f"YouTube upload failed for run_id={run_id}; code={error_code}"
+            ) from exc
+
+
 def agent_localization(step, run_dir: Path):
     """Localization & Subtitle - สร้างคำบรรยายและแปลภาษา"""
     in_path = run_dir / step["input_from"]
@@ -3094,6 +3533,7 @@ AGENTS = {
     "voiceover.tts": agent_voiceover_tts,
     "video.render": agent_video_render,
     "quality.gate": agent_quality_gate,
+    "youtube.upload": agent_youtube_upload,
     "Localization": agent_localization,
     "ThumbnailGenerator": agent_thumbnail_generator,
     "SEOAndMetadata": agent_seo_metadata,

@@ -157,6 +157,10 @@
 - **แทนอะไร:** สัญญา quality gate summary เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `quality_gate_summary.json`)
 - **จุดที่ต้องคงที่:** ฟิลด์สำคัญ + พาธแบบ relative เท่านั้น + reasons ต้องมี `engine` และ `checked_at`
 
+### 7. `samples/reference/youtube/youtube_upload_summary_v1_example.json`
+- **แทนอะไร:** สัญญา YouTube upload summary เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `youtube_upload_summary.json`)
+- **จุดที่ต้องคงที่:** ฟิลด์สำคัญ + พาธแบบ relative เท่านั้น + โครงสร้าง `error` และ `metadata` ต้องไม่ drift
+
 ## ขั้นตอนเปรียบเทียบ (Comparison Procedure)
 
 ### ขั้นที่ 1: รัน Pipeline

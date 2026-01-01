@@ -61,6 +61,15 @@ The reference samples help detect unintended changes in:
 
 **Why chosen:** This summary gates downstream steps; drift can change pass/fail decisions or hide critical failures.
 
+### 6. `youtube/youtube_upload_summary_v1_example.json`
+**What it represents:** Stable contract for the `youtube_upload_summary.json` artifact produced by `uses: youtube.upload`.
+**Key attributes to monitor:**
+- Required fields remain present (decision, attempt_count, privacy_status, metadata)
+- All paths are relative (no absolute paths)
+- Error structure remains stable (`error.code`, `error.message`)
+
+**Why chosen:** This summary is a publishing contract artifact; drift can break safe ops gating and downstream reporting.
+
 ## What is "Drift"?
 
 **Drift** means unintended changes in output characteristics:

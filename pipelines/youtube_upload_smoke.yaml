@@ -1,0 +1,6 @@
+pipeline: youtube_upload_smoke
+steps:
+  - id: youtube_upload
+    uses: youtube.upload
+    config:
+      dry_run: true
