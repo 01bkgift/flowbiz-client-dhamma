@@ -94,7 +94,17 @@ class FileQueue:
         temp_path = path.with_suffix(f"{path.suffix}.tmp.{os.getpid()}")
         payload = json.dumps(job.model_dump(), ensure_ascii=False, indent=2)
         temp_path.write_text(payload, encoding="utf-8")
-        os.replace(temp_path, path)
+        try:
+            os.replace(temp_path, path)
+        except OSError:
+            # ลบไฟล์ชั่วคราวถ้ามีปัญหาในการเขียนไฟล์ปลายทาง
+            try:
+                if temp_path.exists():
+                    temp_path.unlink()
+            except OSError:
+                # ถ้าลบไม่สำเร็จให้ข้ามไปเพื่อไม่กลบข้อผิดพลาดหลัก
+                pass
+            raise
 
     def _load_job(self, path: Path) -> JobSpec | None:
         try:
