@@ -139,16 +139,16 @@ class FileQueue:
         self._ensure_dirs()
         pending_job = job.model_copy(update={"status": "pending", "last_error": None})
         target_path = self.pending_dir / self._build_filename(pending_job)
+        payload = json.dumps(pending_job.model_dump(), ensure_ascii=False, indent=2)
 
         try:
-            # ใช้การสร้างไฟล์แบบ exclusive เพื่อป้องกัน race condition ระหว่าง process
-            fd = os.open(str(target_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            # ใช้โหมด "x" เพื่อสร้างไฟล์แบบ exclusive และเขียนข้อมูลในขั้นตอนเดียว
+            with open(target_path, "x", encoding="utf-8") as f:
+                f.write(payload)
         except FileExistsError:
             # มีงานที่ job_id เดียวกันถูก enqueue ไปแล้ว
             return False
         else:
-            os.close(fd)
-            self._write_job(target_path, pending_job)
             return True
 
     def list_pending(self) -> list[QueueItem]:
