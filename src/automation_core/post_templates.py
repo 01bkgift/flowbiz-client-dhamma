@@ -60,7 +60,7 @@ def _normalize_hashtags(value: Any) -> str:
         items = [str(item).strip() for item in value]
         items = [item for item in items if item]
         return " ".join(sorted(items))
-    return " ".join(str(value).split())
+    return " ".join(sorted(str(value).split()))
 
 
 def _coerce_text(value: Any) -> str:
