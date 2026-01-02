@@ -258,6 +258,15 @@ def _extract_env_params(payload: str) -> tuple[dict[str, str], set[str]]:
     return values, present
 
 
+def _extract_hashtags_value(data: Mapping[str, Any]) -> str | None:
+    """ดึงค่า hashtags จาก key 'hashtags' หรือ fallback จาก 'tags' แบบ deterministic"""
+    if "hashtags" in data:
+        return _normalize_hashtags(data["hashtags"])
+    if "tags" in data:
+        return _normalize_hashtags(data["tags"])
+    return None
+
+
 def _extract_metadata_fields(data: dict[str, Any]) -> tuple[dict[str, str], set[str]]:
     """
     แยกค่าฟิลด์จากไฟล์ metadata.json
@@ -298,11 +307,9 @@ def _extract_metadata_fields(data: dict[str, Any]) -> tuple[dict[str, str], set[
         values["summary"] = summary_value
         present.add("summary")
 
-    if "hashtags" in data:
-        values["hashtags"] = _normalize_hashtags(data["hashtags"])
-        present.add("hashtags")
-    elif "tags" in data:
-        values["hashtags"] = _normalize_hashtags(data["tags"])
+    hashtags_value = _extract_hashtags_value(data)
+    if hashtags_value is not None:
+        values["hashtags"] = hashtags_value
         present.add("hashtags")
 
     if "language" in data:
@@ -345,11 +352,9 @@ def _extract_video_summary_fields(
             values[key] = _coerce_text(data[key])
             present.add(key)
 
-    if "hashtags" in data:
-        values["hashtags"] = _normalize_hashtags(data["hashtags"])
-        present.add("hashtags")
-    elif "tags" in data:
-        values["hashtags"] = _normalize_hashtags(data["tags"])
+    hashtags_value = _extract_hashtags_value(data)
+    if hashtags_value is not None:
+        values["hashtags"] = hashtags_value
         present.add("hashtags")
 
     return values, present
@@ -511,6 +516,7 @@ def render_template(template_text: str, values: Mapping[str, str]) -> str:
     Raises:
         ValueError: ถ้าพบ placeholder ที่ไม่รู้จัก (ไม่อยู่ใน ALLOWED_PLACEHOLDERS)
     """
+
     def _replace(match: re.Match[str]) -> str:
         raw_name = match.group(1)
         name = raw_name.strip()
@@ -721,10 +727,6 @@ def cli_main(argv: list[str] | None = None) -> int:
     render_parser.add_argument("--run-id", required=True, help="Run identifier")
 
     args = parser.parse_args(argv)
-
-    if args.command != "render":
-        print("Error: unknown command", file=sys.stderr)
-        return 1
 
     try:
         if not parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED")):
