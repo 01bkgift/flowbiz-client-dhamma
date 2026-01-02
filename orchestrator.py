@@ -22,31 +22,12 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from automation_core import youtube_upload  # noqa: E402
+from automation_core.utils.env import parse_pipeline_enabled  # noqa: E402
 
 
 def ensure_dir(p: Path):
     """สร้างโฟลเดอร์ถ้ายังไม่มี"""
     p.mkdir(parents=True, exist_ok=True)
-
-
-def parse_pipeline_enabled(env_value: str | None) -> bool:
-    """
-    Parse PIPELINE_ENABLED environment variable.
-
-    Args:
-        env_value: Value from os.environ.get('PIPELINE_ENABLED')
-
-    Returns:
-        True if pipeline should run (enabled or not set)
-        False if pipeline should be disabled
-
-    Default: True (enabled) when env var is not set
-    """
-    if env_value is None:
-        return True  # Default to enabled
-
-    # Case-insensitive check for "false"
-    return env_value.strip().lower() not in ("false", "0", "no", "off", "disabled")
 
 
 def write_text(path: Path, text: str):

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from automation_core.params import PIPELINE_PARAMS_ENV
+from automation_core.utils.env import parse_pipeline_enabled
 
 PIPELINE_DISABLED_MESSAGE = "Pipeline disabled by PIPELINE_ENABLED=false"
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -34,24 +35,6 @@ ALLOWED_PLACEHOLDERS = {
 CONTENT_FIELDS = ("title", "hook", "summary", "cta", "hashtags", "lang", "platform")
 ENV_SOURCE = f"env:{PIPELINE_PARAMS_ENV}"
 PLACEHOLDER_RE = re.compile(r"\{\{([^}]*)\}\}")
-
-
-def parse_pipeline_enabled(env_value: str | None) -> bool:
-    """
-    แปลงค่าจากตัวแปรสภาพแวดล้อมที่ใช้ควบคุมการเปิด/ปิด pipeline ให้เป็นค่า boolean
-
-    Args:
-        env_value: ค่าจากตัวแปรสภาพแวดล้อม PIPELINE_ENABLED หรือ None
-            ถ้าเป็น None จะถือว่า pipeline เปิดใช้งานอยู่
-
-    Returns:
-        bool: True ถ้า pipeline ถือว่าเปิดใช้งาน
-              False ถ้าค่าเป็นหนึ่งใน ("false", "0", "no", "off", "disabled")
-              (ไม่คำนึงถึงตัวพิมพ์ใหญ่/เล็ก และตัดช่องว่างรอบข้างแล้ว)
-    """
-    if env_value is None:
-        return True
-    return env_value.strip().lower() not in ("false", "0", "no", "off", "disabled")
 
 
 def _utc_now() -> datetime:
@@ -92,7 +75,7 @@ def _normalize_line_endings(text: str) -> str:
 
 def _normalize_hashtags(value: Any) -> str:
     """
-    ปรับรูปแบบแฮชแท็กให้เป็นสตริงที่ตัดช่องว่างส่วนเกิน
+    ปรับรูปแบบแฮชแท็กให้เป็นสตริงที่ตัดช่องว่างส่วนเกินและจัดเรียงตามลำดับตัวอักษร
 
     Args:
         value: แฮชแท็กในรูปแบบ list, str หรือ None
@@ -100,8 +83,8 @@ def _normalize_hashtags(value: Any) -> str:
     Returns:
         str: สตริงแฮชแท็กที่จัดรูปแบบแล้ว
              ถ้า value เป็น None จะคืนค่าสตริงว่าง
-             ถ้า value เป็น list จะแปลงเป็นสตริง trim และ sort แล้วคั่นด้วยช่องว่าง
-             ถ้า value เป็น str จะแยกคำและคั่นด้วยช่องว่างเดียว (ไม่ sort)
+             ถ้า value เป็น list หรือ str จะแปลงเป็นสตริง trim และ sort แล้วคั่นด้วยช่องว่าง
+             เพื่อให้ผลลัพธ์เป็น deterministic ไม่ว่าจะรับค่าแบบใด
     """
     if value is None:
         return ""
@@ -109,7 +92,10 @@ def _normalize_hashtags(value: Any) -> str:
         items = [str(item).strip() for item in value]
         items = [item for item in items if item]
         return " ".join(sorted(items))
-    return " ".join(str(value).split())
+    # สำหรับ string ก็ให้ split แล้ว sort เพื่อความสม่ำเสมอ
+    items = str(value).split()
+    items = [item.strip() for item in items if item.strip()]
+    return " ".join(sorted(items))
 
 
 def _coerce_text(value: Any) -> str:

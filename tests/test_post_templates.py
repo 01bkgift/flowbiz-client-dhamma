@@ -200,8 +200,8 @@ def test_hashtag_normalization_string(tmp_path, monkeypatch):
     )
 
     rendered = post_templates.render_post_templates(run_id, base_dir=tmp_path)
-    assert rendered["short"].strip() == "#b #a #c"
-    assert rendered["long"].strip() == "#b #a #c"
+    assert rendered["short"].strip() == "#a #b #c"
+    assert rendered["long"].strip() == "#a #b #c"
 
 
 def test_kill_switch_prevents_writes(tmp_path, monkeypatch):

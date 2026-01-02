@@ -24,6 +24,7 @@
 - **Voiceover Artifacts:** ไฟล์เสียงและเมทาดาทาเก็บใน `data/voiceovers/<run_id>/` และชื่อไฟล์แบบ `<slug>_<sha256[:12]>.wav` และ `<slug>_<sha256[:12]>.json`
 - **Video Render Artifacts:** ผลลัพธ์วิดีโอเก็บใน `output/<run_id>/artifacts/` โดยมีไฟล์ `video_render_summary.json` และไฟล์ MP4 แบบ `<slug>_<sha256[:12]>.mp4`
 - **Quality Gate Artifacts:** ไฟล์สรุปคุณภาพเก็บใน `output/<run_id>/artifacts/quality_gate_summary.json`
+- **Post Content Artifacts:** ไฟล์สรุปเนื้อหาโพสต์เก็บใน `output/<run_id>/artifacts/post_content_summary.json`
 
 ### 2. รูปแบบเนื้อหา
 - **Metadata Format:** เมทาดาทา YouTube ต้องมีโครงสร้างเดิม (title, description, tags, SEO keywords)
@@ -169,6 +170,36 @@
 - `code` (string, one of: `worker_disabled`, `queue_empty`, `job_invalid`, `orchestrator_failed`)
 - `message` (string)
 
+### 11. สัญญา Post Content Summary (คงที่)
+
+**สคีมาไฟล์ `output/<run_id>/artifacts/post_content_summary.json` ถือว่า STABLE** สำหรับ post_templates v1
+
+**ฟิลด์ที่ต้องมี (required):**
+- `schema_version` (string, ปัจจุบัน `v1`)
+- `engine` (string, ต้องเป็น `post_templates`)
+- `run_id` (string)
+- `checked_at` (string, ISO8601 UTC)
+- `inputs` (object)
+  - `lang` (string)
+  - `platform` (string)
+  - `template_short` (string, relative path)
+  - `template_long` (string, relative path)
+  - `sources` (list[string], relative paths และ/หรือ `env:PIPELINE_PARAMS_JSON`)
+- `outputs` (object)
+  - `short` (string, เนื้อหาโพสต์แบบสั้น)
+  - `long` (string, เนื้อหาโพสต์แบบยาว)
+
+**หมายเหตุสำคัญ:**
+- ทุกพาธต้องเป็น relative path เท่านั้น (ห้าม absolute paths)
+- แฮชแท็กใน outputs ต้องเรียงลำดับตัวอักษร (sorted) เพื่อความ deterministic
+- sources อาจมีค่าพิเศษ `env:PIPELINE_PARAMS_JSON` ที่แทนการอ่านค่าจาก environment variable
+- ตัวอย่างอ้างอิง: `samples/reference/post/post_content_summary_v1_example.json`
+
+**นโยบาย schema_version:**
+- การเปลี่ยนแปลงที่ **breaking** ต้อง bump `schema_version` และใส่ migration note
+- การเพิ่มฟิลด์แบบ **additive** ทำได้ ถ้าคง backward compatibility
+- การเปลี่ยนชื่อ/ลบฟิลด์แบบเงียบๆ **ห้ามทำ**
+
 ## Assets Baseline v1
 
 นโยบาย assets เป็น baseline ที่ต้องคงที่สำหรับ repo สาธารณะ เพื่อความปลอดภัย
@@ -231,6 +262,10 @@ Policy source-of-truth: `docs/ASSETS_POLICY.md`
 ### 9. `samples/reference/scheduler/worker_summary_v1_example.json`
 - **แทนอะไร:** สัญญา worker summary เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `worker_summary.json`)
 - **จุดที่ต้องคงที่:** ฟิลด์สำคัญ + พาธแบบ relative เท่านั้น + โครงสร้าง `error` ต้องไม่ drift
+
+### 10. `samples/reference/post/post_content_summary_v1_example.json`
+- **แทนอะไร:** สัญญา post content summary เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `post_content_summary.json`)
+- **จุดที่ต้องคงที่:** ฟิลด์สำคัญ + พาธแบบ relative เท่านั้น + แฮชแท็กต้อง sorted + โครงสร้าง inputs/outputs ต้องไม่ drift
 
 ## ขั้นตอนเปรียบเทียบ (Comparison Procedure)
 
