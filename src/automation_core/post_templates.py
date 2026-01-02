@@ -1,5 +1,6 @@
 """
-Deterministic post template rendering from pipeline artifacts and env params.
+โมดูลสำหรับเรนเดอร์เทมเพลตโพสต์แบบกำหนดผลลัพธ์ตายตัว (deterministic)
+จากอาร์ติแฟกต์ที่ได้จาก pipeline และพารามิเตอร์ในตัวแปรสภาพแวดล้อม
 """
 
 from __future__ import annotations
@@ -36,40 +37,110 @@ PLACEHOLDER_RE = re.compile(r"\{\{([^}]*)\}\}")
 
 
 def parse_pipeline_enabled(env_value: str | None) -> bool:
+    """
+    แปลงค่าจากตัวแปรสภาพแวดล้อมที่ใช้ควบคุมการเปิด/ปิด pipeline ให้เป็นค่า boolean
+
+    Args:
+        env_value: ค่าจากตัวแปรสภาพแวดล้อม PIPELINE_ENABLED หรือ None
+            ถ้าเป็น None จะถือว่า pipeline เปิดใช้งานอยู่
+
+    Returns:
+        bool: True ถ้า pipeline ถือว่าเปิดใช้งาน
+              False ถ้าค่าเป็นหนึ่งใน ("false", "0", "no", "off", "disabled")
+              (ไม่คำนึงถึงตัวพิมพ์ใหญ่/เล็ก และตัดช่องว่างรอบข้างแล้ว)
+    """
     if env_value is None:
         return True
     return env_value.strip().lower() not in ("false", "0", "no", "off", "disabled")
 
 
 def _utc_now() -> datetime:
+    """
+    คืนค่าวันเวลาปัจจุบันในเขตเวลา UTC
+
+    Returns:
+        datetime: วันเวลาปัจจุบันแบบ timezone-aware ในเขตเวลา UTC
+    """
     return datetime.now(UTC)
 
 
 def _utc_iso(value: datetime) -> str:
+    """
+    แปลงค่าวันเวลาเป็นรูปแบบ ISO 8601 ในเขตเวลา UTC
+
+    Args:
+        value: วันเวลาที่ต้องการแปลง
+
+    Returns:
+        str: สตริงวันเวลาในรูปแบบ ISO 8601 โดยแทนที่ +00:00 ด้วย Z
+    """
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _normalize_line_endings(text: str) -> str:
+    """
+    ปรับรูปแบบ line endings ให้เป็น Unix-style (\\n) เท่านั้น
+
+    Args:
+        text: ข้อความที่ต้องการปรับ line endings
+
+    Returns:
+        str: ข้อความที่แปลง \\r\\n และ \\r เป็น \\n แล้ว
+    """
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def _normalize_hashtags(value: Any) -> str:
+    """
+    ปรับรูปแบบแฮชแท็กให้เป็นสตริงที่ตัดช่องว่างส่วนเกิน
+
+    Args:
+        value: แฮชแท็กในรูปแบบ list, str หรือ None
+
+    Returns:
+        str: สตริงแฮชแท็กที่จัดรูปแบบแล้ว
+             ถ้า value เป็น None จะคืนค่าสตริงว่าง
+             ถ้า value เป็น list จะแปลงเป็นสตริง trim และ sort แล้วคั่นด้วยช่องว่าง
+             ถ้า value เป็น str จะแยกคำและคั่นด้วยช่องว่างเดียว (ไม่ sort)
+    """
     if value is None:
         return ""
     if isinstance(value, list):
         items = [str(item).strip() for item in value]
         items = [item for item in items if item]
         return " ".join(sorted(items))
-    return " ".join(sorted(str(value).split()))
+    return " ".join(str(value).split())
 
 
 def _coerce_text(value: Any) -> str:
+    """
+    บังคับแปลงค่าเป็นสตริง หรือคืนค่าสตริงว่างถ้าเป็น None
+
+    Args:
+        value: ค่าที่ต้องการแปลงเป็นสตริง
+
+    Returns:
+        str: สตริงที่แปลงจาก value หรือสตริงว่างถ้า value เป็น None
+    """
     if value is None:
         return ""
     return str(value)
 
 
 def _validate_run_id(run_id: str) -> str:
+    """
+    ตรวจสอบและ validate run_id ให้เป็น path segment เดียวที่ปลอดภัย
+
+    Args:
+        run_id: run identifier ที่ต้องการตรวจสอบ
+
+    Returns:
+        str: run_id ที่ผ่านการตรวจสอบแล้ว
+
+    Raises:
+        ValueError: ถ้า run_id ไม่ถูกต้อง เช่น เป็นสตริงว่าง, เป็น absolute path,
+                   มี path separators, หรือมี '.' หรือ '..'
+    """
     if not isinstance(run_id, str) or not run_id.strip():
         raise ValueError("run_id is required")
     path = Path(run_id)
@@ -83,6 +154,19 @@ def _validate_run_id(run_id: str) -> str:
 
 
 def _validate_relative_path(value: str, field_name: str) -> str:
+    """
+    ตรวจสอบว่า path เป็น relative path ที่ปลอดภัย
+
+    Args:
+        value: path ที่ต้องการตรวจสอบ
+        field_name: ชื่อฟิลด์สำหรับแสดงใน error message
+
+    Returns:
+        str: path ที่ผ่านการตรวจสอบแล้ว
+
+    Raises:
+        ValueError: ถ้า path เป็น absolute path หรือมี '..' ซึ่งไม่ปลอดภัย
+    """
     path = Path(value)
     if path.is_absolute() or path.drive or path.root:
         raise ValueError(f"{field_name} must be relative")
@@ -92,6 +176,20 @@ def _validate_relative_path(value: str, field_name: str) -> str:
 
 
 def _relative_path(base_dir: Path, path: Path, field_name: str) -> str:
+    """
+    คำนวณ relative path จาก base_dir และตรวจสอบความปลอดภัย
+
+    Args:
+        base_dir: directory ฐานที่ใช้อ้างอิง
+        path: path แบบ absolute ที่ต้องการแปลงเป็น relative
+        field_name: ชื่อฟิลด์สำหรับแสดงใน error message
+
+    Returns:
+        str: relative path ในรูปแบบ POSIX (ใช้ / เป็น separator)
+
+    Raises:
+        ValueError: ถ้า path ไม่อยู่ภายใน base_dir หรือไม่ผ่านการตรวจสอบความปลอดภัย
+    """
     try:
         rel = path.relative_to(base_dir)
     except ValueError as exc:
@@ -100,6 +198,18 @@ def _relative_path(base_dir: Path, path: Path, field_name: str) -> str:
 
 
 def _read_json_file(path: Path) -> dict[str, Any] | None:
+    """
+    อ่านและแปลงไฟล์ JSON เป็น dictionary
+
+    Args:
+        path: path ของไฟล์ JSON ที่ต้องการอ่าน
+
+    Returns:
+        dict[str, Any] | None: dictionary จากไฟล์ JSON หรือ None ถ้าไฟล์ไม่พบ
+
+    Raises:
+        ValueError: ถ้าไฟล์มี JSON ที่ไม่ถูกต้อง หรือไม่ใช่ JSON object
+    """
     try:
         raw = path.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -114,6 +224,20 @@ def _read_json_file(path: Path) -> dict[str, Any] | None:
 
 
 def _extract_env_params(payload: str) -> tuple[dict[str, str], set[str]]:
+    """
+    แยกค่าพารามิเตอร์จาก PIPELINE_PARAMS_JSON
+
+    Args:
+        payload: JSON string จากตัวแปรสภาพแวดล้อม PIPELINE_PARAMS_JSON
+
+    Returns:
+        tuple[dict[str, str], set[str]]: คู่ของ (values, present) โดย
+            - values: dictionary ของค่าฟิลด์ที่แปลงเป็นสตริงแล้ว
+            - present: set ของชื่อฟิลด์ที่พบในข้อมูล
+
+    Raises:
+        ValueError: ถ้า payload ไม่ใช่ valid JSON หรือไม่ใช่ JSON object
+    """
     try:
         data = json.loads(payload)
     except json.JSONDecodeError as exc:
@@ -135,6 +259,21 @@ def _extract_env_params(payload: str) -> tuple[dict[str, str], set[str]]:
 
 
 def _extract_metadata_fields(data: dict[str, Any]) -> tuple[dict[str, str], set[str]]:
+    """
+    แยกค่าฟิลด์จากไฟล์ metadata.json
+
+    Args:
+        data: dictionary จากไฟล์ metadata.json
+
+    Returns:
+        tuple[dict[str, str], set[str]]: คู่ของ (values, present) โดย
+            - values: dictionary ของค่าฟิลด์ที่แปลงเป็นสตริงแล้ว
+            - present: set ของชื่อฟิลด์ที่พบในข้อมูล
+
+    Note:
+        ฟังก์ชันนี้จะแมป description -> summary, tags -> hashtags,
+        language -> lang และดึงค่า title, platform
+    """
     values: dict[str, str] = {}
     present: set[str] = set()
 
@@ -183,6 +322,21 @@ def _extract_metadata_fields(data: dict[str, Any]) -> tuple[dict[str, str], set[
 def _extract_video_summary_fields(
     data: dict[str, Any],
 ) -> tuple[dict[str, str], set[str]]:
+    """
+    แยกค่าฟิลด์จากไฟล์ video_render_summary.json
+
+    Args:
+        data: dictionary จากไฟล์ video_render_summary.json
+
+    Returns:
+        tuple[dict[str, str], set[str]]: คู่ของ (values, present) โดย
+            - values: dictionary ของค่าฟิลด์ที่แปลงเป็นสตริงแล้ว
+            - present: set ของชื่อฟิลด์ที่พบในข้อมูล
+
+    Note:
+        ฟังก์ชันนี้จะดึงค่า title, hook, summary, cta, lang, platform
+        และแมป hashtags/tags -> hashtags
+    """
     values: dict[str, str] = {}
     present: set[str] = set()
 
@@ -210,6 +364,21 @@ def _apply_source(
     source_label: str,
     sources: list[str],
 ) -> None:
+    """
+    นำค่าจาก source มาใส่ใน values สำหรับฟิลด์ที่ยังไม่ได้ assign และบันทึกชื่อ source
+
+    Args:
+        values: dictionary ของค่าฟิลด์ทั้งหมด (จะถูกแก้ไข in-place)
+        assigned: set ของชื่อฟิลด์ที่ถูก assign แล้ว (จะถูกแก้ไข in-place)
+        source_values: dictionary ของค่าจาก source นี้
+        present: set ของชื่อฟิลด์ที่มีใน source นี้
+        source_label: ชื่อของ source สำหรับบันทึก
+        sources: list ของชื่อ source ที่ถูกใช้ (จะถูกแก้ไข in-place)
+
+    Note:
+        ฟังก์ชันนี้จะ assign ค่าเฉพาะฟิลด์ที่ยังไม่ได้ assign และจะเพิ่ม source_label
+        ใน sources list เฉพาะเมื่อมีการใช้งานอย่างน้อยหนึ่งฟิลด์
+    """
     used = False
     for key in sorted(present):
         if key in assigned:
@@ -227,6 +396,25 @@ def _build_placeholder_values(
     base_dir: Path,
     pipeline_params_json: str | None = None,
 ) -> tuple[dict[str, str], list[str]]:
+    """
+    สร้าง dictionary ของค่า placeholder จากหลายแหล่งข้อมูลตามลำดับความสำคัญ
+
+    Args:
+        run_id: run identifier
+        base_dir: directory ฐานของ repository
+        pipeline_params_json: JSON string จาก PIPELINE_PARAMS_JSON (ถ้ามี)
+
+    Returns:
+        tuple[dict[str, str], list[str]]: คู่ของ (values, sources) โดย
+            - values: dictionary ของค่า placeholder ทั้งหมด
+            - sources: list ของ source ที่ถูกใช้ตามลำดับความสำคัญ
+
+    Note:
+        ลำดับความสำคัญของ source (จากสูงไปต่ำ):
+        1. PIPELINE_PARAMS_JSON (env variable)
+        2. metadata.json
+        3. video_render_summary.json
+    """
     run_id = _validate_run_id(run_id)
     values = {**dict.fromkeys(CONTENT_FIELDS, "")}
     assigned: set[str] = set()
@@ -288,6 +476,20 @@ def _build_placeholder_values(
 def load_template(
     template_name: str, *, base_dir: Path = REPO_ROOT
 ) -> tuple[Path, str]:
+    """
+    โหลดเทมเพลตโพสต์จากไฟล์
+
+    Args:
+        template_name: ชื่อเทมเพลต ('short' หรือ 'long')
+        base_dir: directory ฐานของ repository
+
+    Returns:
+        tuple[Path, str]: คู่ของ (template_path, template_text)
+
+    Raises:
+        ValueError: ถ้า template_name ไม่ใช่ 'short' หรือ 'long'
+        FileNotFoundError: ถ้าไฟล์เทมเพลตไม่พบ
+    """
     if template_name not in ("short", "long"):
         raise ValueError("template_name must be 'short' or 'long'")
     template_path = base_dir / "templates" / "post" / f"{template_name}.md"
@@ -296,6 +498,19 @@ def load_template(
 
 
 def render_template(template_text: str, values: Mapping[str, str]) -> str:
+    """
+    เรนเดอร์เทมเพลตโดยแทนที่ placeholder ด้วยค่าจริง
+
+    Args:
+        template_text: ข้อความเทมเพลตที่มี placeholder ในรูปแบบ {{name}}
+        values: dictionary ของค่าสำหรับแทนที่ placeholder
+
+    Returns:
+        str: ข้อความที่เรนเดอร์แล้วโดยแทนที่ placeholder และปรับ line endings
+
+    Raises:
+        ValueError: ถ้าพบ placeholder ที่ไม่รู้จัก (ไม่อยู่ใน ALLOWED_PLACEHOLDERS)
+    """
     def _replace(match: re.Match[str]) -> str:
         raw_name = match.group(1)
         name = raw_name.strip()
@@ -313,6 +528,21 @@ def render_post_templates(
     base_dir: Path = REPO_ROOT,
     pipeline_params_json: str | None = None,
 ) -> dict[str, Any]:
+    """
+    เรนเดอร์เทมเพลตโพสต์ทั้ง short และ long
+
+    Args:
+        run_id: run identifier
+        base_dir: directory ฐานของ repository
+        pipeline_params_json: JSON string จาก PIPELINE_PARAMS_JSON (ถ้ามี)
+
+    Returns:
+        dict[str, Any]: dictionary ที่มี run_id, short, long, lang, platform,
+                        template_short, template_long และ sources
+
+    Raises:
+        ValueError: ถ้า run_id ไม่ถูกต้อง หรือเทมเพลตมี placeholder ที่ไม่รู้จัก
+    """
     values, sources = _build_placeholder_values(
         run_id,
         base_dir=base_dir,
@@ -345,6 +575,20 @@ def build_post_content_summary(
     *,
     checked_at: datetime | None = None,
 ) -> dict[str, Any]:
+    """
+    สร้าง summary artifact ในรูปแบบ JSON schema v1
+
+    Args:
+        rendered: dictionary จากการเรนเดอร์เทมเพลต (จาก render_post_templates)
+        checked_at: timestamp สำหรับบันทึกเวลาที่ตรวจสอบ (ถ้าไม่ระบุจะใช้เวลาปัจจุบัน)
+
+    Returns:
+        dict[str, Any]: summary artifact ที่มี schema_version, engine, run_id,
+                        checked_at, inputs และ outputs
+
+    Raises:
+        ValueError: ถ้าข้อมูลใน rendered ไม่ถูกต้องหรือไม่ผ่านการ validate
+    """
     run_id = _validate_run_id(str(rendered.get("run_id", "")))
     template_short = _validate_relative_path(
         str(rendered.get("template_short", "")), "inputs.template_short"
@@ -386,6 +630,21 @@ def build_post_content_summary(
 def write_post_content_summary(
     run_id: str, summary: Mapping[str, Any], *, base_dir: Path = REPO_ROOT
 ) -> Path:
+    """
+    เขียน summary artifact ลงไฟล์ post_content_summary.json
+
+    Args:
+        run_id: run identifier
+        summary: summary artifact dictionary (จาก build_post_content_summary)
+        base_dir: directory ฐานของ repository
+
+    Returns:
+        Path: path ของไฟล์ที่เขียน (หรือจะเขียนถ้า pipeline เปิดอยู่)
+
+    Note:
+        ถ้า PIPELINE_ENABLED=false จะไม่เขียนไฟล์ แต่จะคืนค่า path ตามปกติ
+        (kill-switch enforcement)
+    """
     run_id = _validate_run_id(run_id)
     output_path = (
         base_dir / "output" / run_id / "artifacts" / "post_content_summary.json"
@@ -408,6 +667,24 @@ def generate_post_content_summary(
     pipeline_params_json: str | None = None,
     checked_at: datetime | None = None,
 ) -> tuple[dict[str, Any], Path]:
+    """
+    เรนเดอร์เทมเพลตและสร้างพร้อมเขียน summary artifact
+
+    Args:
+        run_id: run identifier
+        base_dir: directory ฐานของ repository
+        pipeline_params_json: JSON string จาก PIPELINE_PARAMS_JSON (ถ้ามี)
+        checked_at: timestamp สำหรับบันทึกเวลาที่ตรวจสอบ
+
+    Returns:
+        tuple[dict[str, Any], Path]: คู่ของ (summary, output_path)
+            - summary: summary artifact dictionary
+            - output_path: path ของไฟล์ที่เขียน
+
+    Note:
+        เป็นฟังก์ชันหลักที่รวม render_post_templates, build_post_content_summary
+        และ write_post_content_summary เข้าด้วยกัน
+    """
     rendered = render_post_templates(
         run_id,
         base_dir=base_dir,
@@ -419,6 +696,23 @@ def generate_post_content_summary(
 
 
 def cli_main(argv: list[str] | None = None) -> int:
+    """
+    CLI interface สำหรับเรนเดอร์เทมเพลตโพสต์
+
+    Args:
+        argv: command-line arguments (ถ้าไม่ระบุจะใช้ sys.argv)
+
+    Returns:
+        int: exit code (0 = success, 1 = error)
+
+    Commands:
+        render --run-id RUN_ID: เรนเดอร์เทมเพลตและสร้าง post_content_summary.json
+
+    Note:
+        - Kill-switch enforcement: ถ้า PIPELINE_ENABLED=false จะไม่เขียนไฟล์
+        - พิมพ์ข้อความ "Pipeline disabled..." และคืนค่า 0 (ไม่ถือว่าเป็น error)
+        - พิมพ์ path ของไฟล์ที่เขียนเมื่อสำเร็จ
+    """
     parser = argparse.ArgumentParser(
         description="Render post templates and write post_content_summary.json."
     )
