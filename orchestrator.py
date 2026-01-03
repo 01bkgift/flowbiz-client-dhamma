@@ -119,7 +119,8 @@ def _run_dispatch_v0_step(run_id: str, root_dir: Path) -> str:
     """
     _, audit_path = dispatch_v0.generate_dispatch_audit(run_id, base_dir=root_dir)
     if audit_path is None:
-        return _dispatch_audit_output_rel(run_id)
+        log("Dispatch v0: skipped (PIPELINE_ENABLED=false)")
+        return "skipped"
     return audit_path.relative_to(root_dir).as_posix()
 
 

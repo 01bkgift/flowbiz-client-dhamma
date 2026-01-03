@@ -27,7 +27,7 @@
       {
         "type": "noop",
         "label": "publish",
-        "reason": "dry_run default"
+        "reason": "dispatch disabled"
       }
     ]
   },

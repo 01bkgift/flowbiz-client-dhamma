@@ -188,14 +188,14 @@ def generate_dispatch_audit(
     dispatch_mode: str | None = None,
     dispatch_target: str | None = None,
     checked_at: datetime | None = None,
-) -> tuple[dict[str, Any], Path | None]:
+) -> tuple[dict[str, Any] | None, Path | None]:
     """
     สร้างและเขียน dispatch_audit.json จาก post_content_summary.json
     """
     run_id = _validate_run_id(run_id)
     if not parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED")):
         print("Pipeline disabled by PIPELINE_ENABLED=false")
-        return {}, None
+        return None, None
 
     post_summary_rel, post_summary = load_post_content_summary(run_id, base_dir)
     mode = _validate_dispatch_mode(dispatch_mode or os.environ.get("DISPATCH_MODE"))

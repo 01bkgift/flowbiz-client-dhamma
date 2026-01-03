@@ -293,7 +293,7 @@ Policy source-of-truth: `docs/ASSETS_POLICY.md`
 
 ### 22. `samples/reference/dispatch/dispatch_audit_v1_example.json`
 - **แทนอะไร:** สัญญา dispatch audit เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `dispatch_audit.json`)
-- **จุดที่ต้องคงที่:** ฟิลด์ inputs/result/errors ตามสัญญา + พาธต้องเป็น relative ทั้งหมด + status/target/mode ต้อง deterministic จากอินพุต
+- **จุดที่ต้องคงที่:** ฟิลด์ inputs/result/errors ตามสัญญา + พาธต้องเป็น relative ทั้งหมด + status/target/mode ต้อง deterministic จากอินพุต + แม้ dispatch disabled ต้องมี action=print เพื่อ audit preview และ noop publish
 
 ## ขั้นตอนเปรียบเทียบ (Comparison Procedure)
 

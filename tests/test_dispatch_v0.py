@@ -7,6 +7,7 @@ import pytest
 
 from automation_core.dispatch_v0 import (
     MAX_PREVIEW_CHARS,
+    cli_main,
     generate_dispatch_audit,
     parse_dispatch_enabled,
     validate_post_content_summary,
@@ -66,6 +67,7 @@ def test_dispatch_audit_uses_relative_paths(tmp_path, monkeypatch):
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
     audit, audit_path = generate_dispatch_audit(run_id, base_dir=tmp_path)
 
+    assert audit is not None
     assert audit["inputs"]["post_content_summary"].startswith("output/")
     assert not Path(audit["inputs"]["post_content_summary"]).is_absolute()
     assert audit_path is not None
@@ -90,9 +92,21 @@ def test_kill_switch_blocks_audit_write(tmp_path, monkeypatch):
     _write_post_summary(tmp_path, run_id)
     monkeypatch.setenv("PIPELINE_ENABLED", "false")
 
-    _, audit_path = generate_dispatch_audit(run_id, base_dir=tmp_path)
+    audit, audit_path = generate_dispatch_audit(run_id, base_dir=tmp_path)
 
+    assert audit is None
     assert audit_path is None
     assert not (
         tmp_path / "output" / run_id / "artifacts" / "dispatch_audit.json"
     ).exists()
+
+
+def test_cli_dispatch_creates_audit(tmp_path, monkeypatch):
+    run_id = "run_cli"
+    _write_post_summary(tmp_path, run_id)
+    monkeypatch.setenv("PIPELINE_ENABLED", "true")
+
+    exit_code = cli_main(["dispatch", "--run-id", run_id], base_dir=tmp_path)
+
+    assert exit_code == 0
+    assert (tmp_path / "output" / run_id / "artifacts" / "dispatch_audit.json").exists()

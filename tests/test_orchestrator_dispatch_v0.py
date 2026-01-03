@@ -88,4 +88,4 @@ steps:
     assert exit_code == 0
     assert not (tmp_path / "output" / run_id).exists()
     captured = capsys.readouterr()
-    assert "Pipeline disabled by PIPELINE_ENABLED=false" in captured.out
+    assert "Pipeline disabled" in captured.out
