@@ -21,7 +21,7 @@ SRC_ROOT = ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from automation_core import youtube_upload  # noqa: E402
+from automation_core import post_templates, youtube_upload  # noqa: E402
 from automation_core.utils.env import parse_pipeline_enabled  # noqa: E402
 
 
@@ -51,6 +51,35 @@ def log(msg: str, level="INFO"):
     """พิมพ์ log พร้อม timestamp"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [{level}] {msg}")
+
+
+_PIPELINE_HAS_QUALITY_GATE = False
+_PIPELINE_HAS_POST_TEMPLATES = False
+
+
+def _post_templates_output_rel(run_id: str) -> str:
+    return (
+        Path("output") / run_id / "artifacts" / "post_content_summary.json"
+    ).as_posix()
+
+
+def _run_post_templates_step(run_id: str, root_dir: Path) -> str:
+    print(f"Post templates: start run_id={run_id}")
+    if not parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED")):
+        print("Post templates: disabled (PIPELINE_ENABLED=false)")
+        output_rel = _post_templates_output_rel(run_id)
+        print(f"Post templates: would write {output_rel}")
+        return output_rel
+
+    _, output_path = post_templates.generate_post_content_summary(
+        run_id, base_dir=root_dir
+    )
+    try:
+        output_rel = output_path.relative_to(root_dir).as_posix()
+    except ValueError:
+        output_rel = output_path.as_posix()
+    print(f"Post templates: wrote {output_rel}")
+    return output_rel
 
 
 def _resolve_script_path(script_path: str | Path, root_dir: Path) -> Path:
@@ -2250,6 +2279,8 @@ def agent_video_render(step, run_dir: Path):
     summary_path = root_dir / summary_rel
     write_json(summary_path, render_summary)
     log(f"Video render summary created: {summary_rel}")
+    if not _PIPELINE_HAS_QUALITY_GATE and not _PIPELINE_HAS_POST_TEMPLATES:
+        _run_post_templates_step(run_id, root_dir)
     return summary_rel
 
 
@@ -2464,7 +2495,17 @@ def agent_quality_gate(step, run_dir: Path):
             f"Quality gate failed for run_id={run_id}; reasons={top_codes}"
         )
 
+    if not _PIPELINE_HAS_POST_TEMPLATES:
+        _run_post_templates_step(run_id, root_dir)
+
     return summary_out.relative_to(root_dir).as_posix()
+
+
+def agent_post_templates(step, run_dir: Path):
+    """Post templates - deterministic post content summary."""
+    run_id = run_dir.name
+    root_dir = ROOT.resolve()
+    return _run_post_templates_step(run_id, root_dir)
 
 
 def _youtube_upload_parse_int_env(name: str, default: int) -> int:
@@ -3514,6 +3555,7 @@ AGENTS = {
     "voiceover.tts": agent_voiceover_tts,
     "video.render": agent_video_render,
     "quality.gate": agent_quality_gate,
+    "post_templates": agent_post_templates,
     "youtube.upload": agent_youtube_upload,
     "Localization": agent_localization,
     "ThumbnailGenerator": agent_thumbnail_generator,
@@ -3531,8 +3573,12 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     """รัน pipeline ตามไฟล์ YAML"""
     log(f"Loading pipeline: {pipeline_path}")
 
+    global _PIPELINE_HAS_QUALITY_GATE, _PIPELINE_HAS_POST_TEMPLATES
+
     pipeline_enabled = parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED"))
     if not pipeline_enabled:
+        _PIPELINE_HAS_QUALITY_GATE = False
+        _PIPELINE_HAS_POST_TEMPLATES = False
         log("Pipeline disabled by PIPELINE_ENABLED=false", "INFO")
         print("Pipeline disabled by PIPELINE_ENABLED=false")
         return {
@@ -3552,6 +3598,15 @@ def run_pipeline(pipeline_path: Path, run_id: str):
 
     pipeline_name = cfg.get("pipeline", "unknown")
     steps = cfg.get("steps", [])
+
+    _PIPELINE_HAS_QUALITY_GATE = any(
+        isinstance(step_cfg, dict) and step_cfg.get("uses") == "quality.gate"
+        for step_cfg in steps
+    )
+    _PIPELINE_HAS_POST_TEMPLATES = any(
+        isinstance(step_cfg, dict) and step_cfg.get("uses") == "post_templates"
+        for step_cfg in steps
+    )
 
     log(f"Pipeline: {pipeline_name} ({len(steps)} steps)")
 

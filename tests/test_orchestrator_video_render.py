@@ -41,6 +41,18 @@ def _write_voiceover_summary(
     return summary_path, wav_rel
 
 
+def _write_post_templates(root: Path) -> None:
+    templates_dir = root / "templates" / "post"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    (templates_dir / "short.md").write_text(
+        "{{hook}}\n{{summary}}\n\n{{cta}}\n{{hashtags}}\n", encoding="utf-8"
+    )
+    (templates_dir / "long.md").write_text(
+        "{{title}}\n\n{{hook}}\n\n{{summary}}\n\n{{cta}}\n\n{{hashtags}}\n",
+        encoding="utf-8",
+    )
+
+
 def test_orchestrator_video_render_kill_switch_no_side_effects(
     tmp_path, monkeypatch, capsys
 ):
@@ -144,6 +156,7 @@ def test_orchestrator_video_render_real_run_writes_summary(tmp_path, monkeypatch
     slug = "realrender"
     sha12 = compute_input_sha256("Hello real run")[:12]
     _, wav_rel = _write_voiceover_summary(tmp_path, run_id, slug, sha12)
+    _write_post_templates(tmp_path)
 
     pipeline_path = tmp_path / "pipeline.yml"
     pipeline_path.write_text(

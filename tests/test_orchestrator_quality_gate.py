@@ -23,6 +23,18 @@ def _write_video_render_summary(root: Path, run_id: str, output_mp4_rel: str) ->
     return summary_path
 
 
+def _write_post_templates(root: Path) -> None:
+    templates_dir = root / "templates" / "post"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    (templates_dir / "short.md").write_text(
+        "{{hook}}\n{{summary}}\n\n{{cta}}\n{{hashtags}}\n", encoding="utf-8"
+    )
+    (templates_dir / "long.md").write_text(
+        "{{title}}\n\n{{hook}}\n\n{{summary}}\n\n{{cta}}\n\n{{hashtags}}\n",
+        encoding="utf-8",
+    )
+
+
 def _assert_summary_contract(summary: dict, run_id: str, output_mp4_rel: str):
     assert summary["schema_version"] == "v1"
     assert summary["run_id"] == run_id
@@ -53,6 +65,7 @@ def test_orchestrator_quality_gate_pass(tmp_path, monkeypatch):
     mp4_path.write_bytes(b"fake mp4")
 
     _write_video_render_summary(tmp_path, run_id, output_mp4_rel)
+    _write_post_templates(tmp_path)
 
     pipeline_path = tmp_path / "pipeline.yml"
     pipeline_path.write_text(
