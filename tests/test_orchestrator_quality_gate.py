@@ -117,6 +117,14 @@ def test_orchestrator_quality_gate_missing_mp4_fails(tmp_path, monkeypatch):
     run_id = "run_missing"
     output_mp4_rel = f"output/{run_id}/artifacts/missing.mp4"
     _write_video_render_summary(tmp_path, run_id, output_mp4_rel)
+    write_post_templates(tmp_path)
+    write_metadata(
+        tmp_path,
+        run_id,
+        title="Missing MP4",
+        description="Test missing mp4 behavior",
+        tags=["#missing", "#mp4"],
+    )
 
     pipeline_path = tmp_path / "pipeline.yml"
     pipeline_path.write_text(
@@ -456,3 +464,102 @@ steps:
     sources = post_summary["inputs"]["sources"]
     assert len(sources) >= 1, "At least one source should be listed"
     assert f"output/{run_id}/metadata.json" in sources
+
+
+def test_orchestrator_explicit_post_templates_no_autorun(tmp_path, monkeypatch):
+    """
+    ทดสอบว่าเมื่อมี step post_templates ระบุไว้แล้วจะไม่ auto-run ซ้ำ
+    """
+    from automation_core.voiceover_tts import compute_input_sha256
+
+    run_id = "run_explicit_post"
+    slug = "explicitpost"
+    sha12 = compute_input_sha256("Hello explicit post")[:12]
+
+    artifacts_dir = tmp_path / "output" / run_id / "artifacts"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    wav_rel = f"data/voiceovers/{run_id}/{slug}_{sha12}.wav"
+    wav_path = tmp_path / wav_rel
+    wav_path.parent.mkdir(parents=True, exist_ok=True)
+    wav_path.write_bytes(b"RIFF")
+
+    voiceover_summary = {
+        "schema_version": "v1",
+        "run_id": run_id,
+        "slug": slug,
+        "text_sha256_12": sha12,
+        "wav_path": wav_rel,
+        "metadata_path": f"data/voiceovers/{run_id}/{slug}_{sha12}.json",
+        "engine": "null_tts",
+    }
+    voiceover_summary_path = artifacts_dir / "voiceover_summary.json"
+    voiceover_summary_path.write_text(
+        json.dumps(voiceover_summary, indent=2), encoding="utf-8"
+    )
+
+    write_post_templates(tmp_path)
+    write_metadata(
+        tmp_path,
+        run_id,
+        title="Explicit Post Templates",
+        description="Test explicit post_templates step",
+        tags=["#explicit", "#post"],
+    )
+
+    pipeline_path = tmp_path / "pipeline.yml"
+    pipeline_path.write_text(
+        f"""pipeline: explicit_post_templates
+steps:
+  - id: video_render
+    uses: video.render
+    config:
+      slug: {slug}
+      dry_run: false
+  - id: quality_gate
+    uses: quality.gate
+  - id: post_templates
+    uses: post_templates
+""",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(orchestrator, "ROOT", tmp_path)
+    monkeypatch.setenv("PIPELINE_ENABLED", "true")
+
+    output_mp4_rel = f"output/{run_id}/artifacts/{slug}_{sha12}.mp4"
+    mp4_path = tmp_path / output_mp4_rel
+    mp4_path.parent.mkdir(parents=True, exist_ok=True)
+    mp4_path.write_bytes(b"fake mp4 data")
+
+    ffprobe_payload = json.dumps(
+        {"format": {"duration": "12.0"}, "streams": [{"codec_type": "audio"}]}
+    )
+
+    def fake_run(cmd, check=False, capture_output=True, text=True):
+        if "ffprobe" in str(cmd):
+            return subprocess.CompletedProcess(
+                cmd, 0, stdout=ffprobe_payload, stderr=""
+            )
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(orchestrator.subprocess, "run", fake_run)
+
+    calls: list[str] = []
+    original = orchestrator._run_post_templates_step
+
+    def wrapped(run_id: str, root_dir: Path) -> str:
+        calls.append(run_id)
+        return original(run_id, root_dir)
+
+    monkeypatch.setattr(orchestrator, "_run_post_templates_step", wrapped)
+
+    orchestrator.run_pipeline(pipeline_path, run_id)
+
+    assert calls == [run_id], "post_templates should run exactly once"
+
+    post_content_path = artifacts_dir / "post_content_summary.json"
+    assert post_content_path.exists()
+    post_summary = json.loads(post_content_path.read_text(encoding="utf-8"))
+    assert post_summary["schema_version"] == "v1"
+    assert post_summary["run_id"] == run_id

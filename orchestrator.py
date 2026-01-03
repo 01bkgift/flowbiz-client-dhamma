@@ -54,12 +54,36 @@ def log(msg: str, level="INFO"):
 
 
 def _post_templates_output_rel(run_id: str) -> str:
+    """
+    สร้าง path แบบ relative (รูปแบบ POSIX) สำหรับไฟล์สรุปเนื้อหาโพสต์
+
+    Args:
+        run_id: รหัสรันของ pipeline ที่ใช้เป็นชื่อโฟลเดอร์ย่อยใน output
+
+    Returns:
+        path ของไฟล์ post_content_summary.json ภายใต้
+        output/{run_id}/artifacts ในรูปแบบสตริง POSIX
+    """
     return (
         Path("output") / run_id / "artifacts" / "post_content_summary.json"
     ).as_posix()
 
 
 def _run_post_templates_step(run_id: str, root_dir: Path) -> str:
+    """
+    รัน post_templates เพื่อสร้าง post_content_summary.json
+
+    Args:
+        run_id: รหัสการรัน pipeline
+        root_dir: โฟลเดอร์รากของโปรเจกต์
+
+    Returns:
+        path แบบ relative ของไฟล์ post_content_summary.json
+
+    หมายเหตุ:
+        - ถ้า PIPELINE_ENABLED=false จะไม่เขียนไฟล์ แต่คืนค่า path ที่คาดว่าจะเขียน
+        - เมื่อเปิดใช้งานจะมีการเขียนไฟล์ลง output/<run_id>/artifacts/
+    """
     log(f"Post templates: start run_id={run_id}")
     if not parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED")):
         log("Post templates: disabled (PIPELINE_ENABLED=false)")
@@ -2494,12 +2518,12 @@ def agent_quality_gate(step, run_dir: Path):
     return summary_out.relative_to(root_dir).as_posix()
 
 
-def agent_post_templates(step, run_dir: Path):
+def agent_post_templates(_step, run_dir: Path):
     """
     รันเอเจนต์ post templates เพื่อสร้างสรุปเนื้อหาโพสต์แบบ deterministic
 
     Args:
-        step: ข้อมูลการตั้งค่าของสเต็ปจากไฟล์ pipeline YAML
+        _step: ข้อมูลการตั้งค่าของสเต็ปจากไฟล์ pipeline YAML
             (ไม่ได้ถูกใช้งานโดยตรงในฟังก์ชันนี้ แต่คงพารามิเตอร์ไว้ให้มีรูปแบบ
             สอดคล้องกับเอเจนต์ตัวอื่นใน orchestrator)
         run_dir: โฟลเดอร์รันของ pipeline สำหรับ run_id นั้น ๆ
@@ -3637,6 +3661,17 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     post_templates_ran = False
 
     def _maybe_run_post_templates(step_uses: str, step_result: object) -> None:
+        """
+        ตรวจสอบเงื่อนไขและเรียก post_templates แบบอัตโนมัติเมื่อเหมาะสม
+
+        Args:
+            step_uses: ค่า uses ของ step ที่เพิ่งรันเสร็จ
+            step_result: ผลลัพธ์จาก step นั้น (ใช้เช็ค dry_run)
+
+        หมายเหตุ:
+            - จะข้ามถ้ามี step post_templates ระบุไว้แล้ว หรือเคยรันไปแล้ว
+            - จะรันหลัง quality.gate หรือหลัง video.render (เมื่อไม่มี quality.gate)
+        """
         nonlocal post_templates_ran
         if post_templates_ran or has_post_templates:
             return
@@ -3655,8 +3690,7 @@ def run_pipeline(pipeline_path: Path, run_id: str):
                     f"ERROR in auto-invoked post_templates (after {step_uses}): {e}",
                     "ERROR",
                 )
-                # ไม่ throw exception ต่อเพื่อไม่ให้ pipeline หยุดทำงาน
-                # เพราะ post_templates เป็น step เสริมที่ไม่ใช่ core requirement
+                raise
 
     for i, step in enumerate(steps, 1):
         step_id = step["id"]

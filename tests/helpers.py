@@ -5,7 +5,15 @@ from pathlib import Path
 
 
 def write_post_templates(base_dir: Path) -> None:
-    """เขียนไฟล์ template สำหรับ post content (short.md และ long.md) เพื่อใช้ในการทดสอบ"""
+    """
+    เขียนไฟล์ template สำหรับ post content (short.md และ long.md) เพื่อใช้ในการทดสอบ
+
+    Args:
+        base_dir: โฟลเดอร์หลักสำหรับสร้าง templates/post
+
+    Returns:
+        None
+    """
     templates_dir = base_dir / "templates" / "post"
     templates_dir.mkdir(parents=True, exist_ok=True)
     (templates_dir / "short.md").write_text(

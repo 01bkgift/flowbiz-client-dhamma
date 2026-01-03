@@ -11,7 +11,16 @@ import orchestrator
 
 
 def _write_video_render_summary(base_dir: Path, run_id: str) -> None:
-    """เขียน video_render_summary.json สำหรับการทดสอบ"""
+    """
+    เขียนไฟล์ video_render_summary.json สำหรับการทดสอบ
+
+    Args:
+        base_dir: โฟลเดอร์หลักสำหรับสร้าง output
+        run_id: รหัสการรัน pipeline
+
+    Returns:
+        None
+    """
     summary_path = (
         base_dir / "output" / run_id / "artifacts" / "video_render_summary.json"
     )
@@ -29,8 +38,8 @@ def _assert_relative(value: str) -> None:
     Args:
         value: ค่า path ในรูปแบบสตริงที่ต้องการตรวจสอบ
 
-    Returns:
-        None
+    Raises:
+        AssertionError: หาก path เป็น absolute หรือมี ".." อยู่ใน path
     """
     path = Path(value)
     assert not path.is_absolute()
