@@ -29,8 +29,8 @@ def _assert_relative(value: str) -> None:
     Args:
         value: ค่า path ในรูปแบบสตริงที่ต้องการตรวจสอบ
 
-    Returns:
-        None
+    Raises:
+        AssertionError: หาก path เป็น absolute หรือมี ".." อยู่ใน path
     """
     path = Path(value)
     assert not path.is_absolute()
