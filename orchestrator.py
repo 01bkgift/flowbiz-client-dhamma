@@ -54,6 +54,16 @@ def log(msg: str, level="INFO"):
 
 
 def _post_templates_output_rel(run_id: str) -> str:
+    """
+    สร้าง path แบบ relative (รูปแบบ POSIX) สำหรับไฟล์สรุปเนื้อหาโพสต์
+
+    Args:
+        run_id: รหัสรันของ pipeline ที่ใช้เป็นชื่อโฟลเดอร์ย่อยใน output
+
+    Returns:
+        path ของไฟล์ post_content_summary.json ภายใต้
+        output/{run_id}/artifacts ในรูปแบบสตริง POSIX
+    """
     return (
         Path("output") / run_id / "artifacts" / "post_content_summary.json"
     ).as_posix()
