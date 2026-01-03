@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from automation_core.voiceover_tts import compute_input_sha256
+from tests.helpers import write_metadata, write_post_templates
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import orchestrator
@@ -144,6 +145,14 @@ def test_orchestrator_video_render_real_run_writes_summary(tmp_path, monkeypatch
     slug = "realrender"
     sha12 = compute_input_sha256("Hello real run")[:12]
     _, wav_rel = _write_voiceover_summary(tmp_path, run_id, slug, sha12)
+    write_post_templates(tmp_path)
+    write_metadata(
+        tmp_path,
+        run_id,
+        title="Test Video Title",
+        description="Test video description",
+        tags=["#test", "#video"],
+    )
 
     pipeline_path = tmp_path / "pipeline.yml"
     pipeline_path.write_text(
@@ -194,6 +203,18 @@ steps:
 
     assert wav_rel in summary["ffmpeg_cmd"]
     assert summary["output_mp4_path"] in summary["ffmpeg_cmd"]
+
+    # Verify post_templates was auto-invoked after video_render
+    post_content_path = (
+        tmp_path / "output" / run_id / "artifacts" / "post_content_summary.json"
+    )
+    assert post_content_path.exists(), (
+        "post_content_summary.json should be created by auto-invocation "
+        "of post_templates after video_render completes"
+    )
+    post_summary = json.loads(post_content_path.read_text(encoding="utf-8"))
+    assert post_summary["schema_version"] == "v1"
+    assert post_summary["run_id"] == run_id
 
 
 def test_orchestrator_video_render_voiceover_summary_traversal_blocked(

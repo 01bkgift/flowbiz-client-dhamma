@@ -21,7 +21,7 @@ SRC_ROOT = ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from automation_core import youtube_upload  # noqa: E402
+from automation_core import post_templates, youtube_upload  # noqa: E402
 from automation_core.utils.env import parse_pipeline_enabled  # noqa: E402
 
 
@@ -51,6 +51,57 @@ def log(msg: str, level="INFO"):
     """พิมพ์ log พร้อม timestamp"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [{level}] {msg}")
+
+
+def _post_templates_output_rel(run_id: str) -> str:
+    """
+    สร้าง path แบบ relative (รูปแบบ POSIX) สำหรับไฟล์สรุปเนื้อหาโพสต์
+
+    Args:
+        run_id: รหัสรันของ pipeline ที่ใช้เป็นชื่อโฟลเดอร์ย่อยใน output
+
+    Returns:
+        path ของไฟล์ post_content_summary.json ภายใต้
+        output/{run_id}/artifacts ในรูปแบบสตริง POSIX
+    """
+    return (
+        Path("output") / run_id / "artifacts" / "post_content_summary.json"
+    ).as_posix()
+
+
+def _run_post_templates_step(run_id: str, root_dir: Path) -> str:
+    """
+    รัน post_templates เพื่อสร้าง post_content_summary.json
+
+    Args:
+        run_id: รหัสการรัน pipeline
+        root_dir: โฟลเดอร์รากของโปรเจกต์
+
+    Returns:
+        path แบบ relative ของไฟล์ post_content_summary.json
+
+    หมายเหตุ:
+        - ถ้า PIPELINE_ENABLED=false จะไม่เขียนไฟล์ แต่คืนค่า path ที่คาดว่าจะเขียน
+        - เมื่อเปิดใช้งานจะมีการเขียนไฟล์ลง output/<run_id>/artifacts/
+    """
+    log(f"Post templates: start run_id={run_id}")
+    if not parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED")):
+        log("Post templates: disabled (PIPELINE_ENABLED=false)")
+        output_rel = _post_templates_output_rel(run_id)
+        log(f"Post templates: would write {output_rel}")
+        return output_rel
+
+    _, output_path = post_templates.generate_post_content_summary(
+        run_id, base_dir=root_dir
+    )
+    try:
+        output_rel = output_path.relative_to(root_dir).as_posix()
+    except ValueError as exc:
+        raise ValueError(
+            f"Output path {output_path} is not within the root directory {root_dir}"
+        ) from exc
+    log(f"Post templates: wrote {output_rel}")
+    return output_rel
 
 
 def _resolve_script_path(script_path: str | Path, root_dir: Path) -> Path:
@@ -2467,6 +2518,31 @@ def agent_quality_gate(step, run_dir: Path):
     return summary_out.relative_to(root_dir).as_posix()
 
 
+def agent_post_templates(_step, run_dir: Path):
+    """
+    รันเอเจนต์ post templates เพื่อสร้างสรุปเนื้อหาโพสต์แบบ deterministic
+
+    Args:
+        _step: ข้อมูลการตั้งค่าของสเต็ปจากไฟล์ pipeline YAML
+            (ไม่ได้ถูกใช้งานโดยตรงในฟังก์ชันนี้ แต่คงพารามิเตอร์ไว้ให้มีรูปแบบ
+            สอดคล้องกับเอเจนต์ตัวอื่นใน orchestrator)
+        run_dir: โฟลเดอร์รันของ pipeline สำหรับ run_id นั้น ๆ
+            ใช้สำหรับอ่านค่า run_id จากชื่อโฟลเดอร์
+
+    Returns:
+        เส้นทางไฟล์แบบ relative (POSIX string) จาก root ของโปรเจ็กต์
+        ไปยังไฟล์ post_content_summary.json ที่ถูกสร้างภายใต้
+        output/<run_id>/artifacts/
+
+    Side effects:
+        สร้างไฟล์ post_content_summary.json ภายใต้โฟลเดอร์ artifacts
+        ของ run_id โดยอาศัยการทำงานของ _run_post_templates_step()
+    """
+    run_id = run_dir.name
+    root_dir = ROOT.resolve()
+    return _run_post_templates_step(run_id, root_dir)
+
+
 def _youtube_upload_parse_int_env(name: str, default: int) -> int:
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
@@ -3514,6 +3590,7 @@ AGENTS = {
     "voiceover.tts": agent_voiceover_tts,
     "video.render": agent_video_render,
     "quality.gate": agent_quality_gate,
+    "post_templates": agent_post_templates,
     "youtube.upload": agent_youtube_upload,
     "Localization": agent_localization,
     "ThumbnailGenerator": agent_thumbnail_generator,
@@ -3553,6 +3630,16 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     pipeline_name = cfg.get("pipeline", "unknown")
     steps = cfg.get("steps", [])
 
+    def _pipeline_has_step(step_name: str) -> bool:
+        """ตรวจสอบว่า step ที่มีค่า uses ตามที่กำหนดมีอยู่ใน pipeline หรือไม่"""
+        return any(
+            isinstance(step_cfg, dict) and step_cfg.get("uses") == step_name
+            for step_cfg in steps
+        )
+
+    has_quality_gate = _pipeline_has_step("quality.gate")
+    has_post_templates = _pipeline_has_step("post_templates")
+
     log(f"Pipeline: {pipeline_name} ({len(steps)} steps)")
 
     run_dir = ROOT / "output" / run_id
@@ -3570,6 +3657,40 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     )
 
     results = {}
+    root_dir = ROOT.resolve()
+    post_templates_ran = False
+
+    def _maybe_run_post_templates(step_uses: str, step_result: object) -> None:
+        """
+        ตรวจสอบเงื่อนไขและเรียก post_templates แบบอัตโนมัติเมื่อเหมาะสม
+
+        Args:
+            step_uses: ค่า uses ของ step ที่เพิ่งรันเสร็จ
+            step_result: ผลลัพธ์จาก step นั้น (ใช้เช็ค dry_run)
+
+        หมายเหตุ:
+            - จะข้ามถ้ามี step post_templates ระบุไว้แล้ว หรือเคยรันไปแล้ว
+            - จะรันหลัง quality.gate หรือหลัง video.render (เมื่อไม่มี quality.gate)
+        """
+        nonlocal post_templates_ran
+        if post_templates_ran or has_post_templates:
+            return
+        if isinstance(step_result, PlannedArtifacts) and step_result.dry_run:
+            return
+        if step_uses == "quality.gate" or (
+            step_uses == "video.render" and not has_quality_gate
+        ):
+            # ถ้าไม่มี step post_templates ที่ชัดเจน ให้รันแบบโดยอัตโนมัติหลังจาก
+            # quality gate (แนะนำ) หรือหลัง video render เป็น fallback
+            try:
+                _run_post_templates_step(run_id, root_dir)
+                post_templates_ran = True
+            except Exception as e:
+                log(
+                    f"ERROR in auto-invoked post_templates (after {step_uses}): {e}",
+                    "ERROR",
+                )
+                raise
 
     for i, step in enumerate(steps, 1):
         step_id = step["id"]
@@ -3595,6 +3716,7 @@ def run_pipeline(pipeline_path: Path, run_id: str):
                 entry["planned_paths"] = planned_paths
             results[step_id] = entry
             log(f"[{i}/{len(steps)}] ✓ {step_id} completed", "SUCCESS")
+            _maybe_run_post_templates(uses, result)
         except Exception as e:
             log(f"ERROR in {step_id}: {e}", "ERROR")
             results[step_id] = {"status": "error", "error": str(e)}
