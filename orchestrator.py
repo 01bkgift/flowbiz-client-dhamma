@@ -98,8 +98,8 @@ def _run_post_templates_step(run_id: str, root_dir: Path) -> str:
     exit_code = post_templates.cli_main(cli_args, base_dir=root_dir)
     if exit_code != 0:
         raise RuntimeError(
-            "post_templates failed with "
-            f"exit code {exit_code} for run_id={run_id}; args={cli_args}"
+            f"post_templates failed with exit code {exit_code} "
+            f"for run_id={run_id}; args={cli_args}"
         )
 
     log(f"Post templates: completed -> {output_rel}")
