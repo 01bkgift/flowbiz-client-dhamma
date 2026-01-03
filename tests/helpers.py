@@ -48,7 +48,7 @@ def write_metadata(
         platform: ชื่อแพลตฟอร์ม (ค่าเริ่มต้น: "youtube")
 
     Returns:
-        Path: path ไปยังไฟล์ metadata.json ที่ถูกสร้างขึ้น
+        Path ไปยังไฟล์ metadata.json ที่ถูกสร้างขึ้น
     """
     if tags is None:
         tags = ["#test"]
