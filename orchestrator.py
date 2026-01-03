@@ -3607,7 +3607,7 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     steps = cfg.get("steps", [])
 
     def _pipeline_has_step(step_name: str) -> bool:
-        """ตรวจสอบว่า step ที่มี uses name ที่กำหนดมีอยู่ใน pipeline หรือไม่"""
+        """ตรวจสอบว่า step ที่มีค่า uses ตามที่กำหนดมีอยู่ใน pipeline หรือไม่"""
         return any(
             isinstance(step_cfg, dict) and step_cfg.get("uses") == step_name
             for step_cfg in steps

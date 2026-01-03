@@ -32,15 +32,6 @@ def _assert_relative(value: str) -> None:
     Returns:
         None
     """
-    """
-    ตรวจสอบว่า path เป็น relative path และไม่มี path traversal
-
-    Args:
-        value: ค่า path ในรูปแบบสตริงที่ต้องการตรวจสอบ
-
-    Returns:
-        None
-    """
     path = Path(value)
     assert not path.is_absolute()
     assert ".." not in path.parts
