@@ -198,6 +198,12 @@ def validate_dispatch_audit(audit: dict[str, Any], run_id: str) -> dict[str, Any
     return audit
 
 
+def _post_summary_rel_path(run_id: str, *, validate: bool = True) -> str:
+    if validate:
+        run_id = _validate_run_id(run_id)
+    return (Path("output") / run_id / "artifacts" / POST_SUMMARY_NAME).as_posix()
+
+
 def load_post_content_summary(
     run_id: str, base_dir: Path = REPO_ROOT
 ) -> tuple[str, dict[str, Any]]:
@@ -212,7 +218,7 @@ def load_post_content_summary(
         tuple[str, dict[str, Any]]: (relative path, json data ที่ validate แล้ว)
     """
     run_id = _validate_run_id(run_id)
-    relative = (Path("output") / run_id / "artifacts" / POST_SUMMARY_NAME).as_posix()
+    relative = _post_summary_rel_path(run_id, validate=False)
     path = base_dir / relative
     raw = path.read_text(encoding="utf-8")
     try:
@@ -306,10 +312,8 @@ def generate_dispatch_audit(
         print("Pipeline disabled by PIPELINE_ENABLED=false")
         return None, None
 
-    post_summary_rel = (
-        Path("output") / run_id / "artifacts" / POST_SUMMARY_NAME
-    ).as_posix()
-    mode = "dry_run"
+    post_summary_rel = _post_summary_rel_path(run_id, validate=False)
+    mode = _validate_dispatch_mode(None)
     enabled = (
         dispatch_enabled
         if dispatch_enabled is not None
@@ -319,6 +323,7 @@ def generate_dispatch_audit(
     platform = ""
     short_bytes = 0
     long_bytes = 0
+    # defaults above are reused for failure audit paths
     try:
         post_summary_rel, post_summary = load_post_content_summary(run_id, base_dir)
         platform = str(post_summary["inputs"]["platform"])
