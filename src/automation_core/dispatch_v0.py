@@ -381,9 +381,19 @@ def generate_dispatch_audit(
         print(f"Dispatch v0: status={status} audit={audit_rel or 'skipped'}")
         return audit, audit_path
     except Exception as exc:
+        if isinstance(exc, FileNotFoundError):
+            error_code = "file_not_found"
+        elif isinstance(exc, json.JSONDecodeError):
+            error_code = "invalid_json"
+        elif isinstance(exc, ValueError):
+            # ใช้สำหรับโหมดหรือค่าพารามิเตอร์ที่ไม่ถูกต้อง
+            error_code = "invalid_argument"
+        else:
+            error_code = "dispatch_validation_error"
+
         errors = [
             {
-                "code": "dispatch_validation_error",
+                "code": error_code,
                 "message": "Dispatch failed - see detail",
                 "step": "dispatch.v0",
                 "detail": str(exc),
