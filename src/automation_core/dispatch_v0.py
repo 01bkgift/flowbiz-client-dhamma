@@ -193,7 +193,7 @@ def validate_dispatch_audit(audit: dict[str, Any], run_id: str) -> dict[str, Any
         if err.get("step") != "dispatch.v0":
             raise ValueError("error.step must be 'dispatch.v0'")
         detail = err.get("detail")
-        if not isinstance(detail, (str, dict)):
+        if detail is not None and not isinstance(detail, (str, dict)):
             raise ValueError("error.detail must be string or object")
     return audit
 
