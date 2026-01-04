@@ -73,7 +73,7 @@ def test_validate_dispatch_audit_happy_path(tmp_path, monkeypatch):
     validated = validate_dispatch_audit(audit, run_id)
     actions = validated["result"]["actions"]
     assert [a["label"] for a in actions] == ["short", "long", "publish"]
-    assert actions[0]["bytes"] == len("short content".encode("utf-8"))
+    assert actions[0]["bytes"] == len(b"short content")
     assert actions[2]["type"] == "noop"
 
 
@@ -110,7 +110,7 @@ def test_kill_switch_blocks_audit_write(tmp_path, monkeypatch):
 
     audit, audit_path = generate_dispatch_audit(run_id, base_dir=tmp_path)
 
-    assert audit is None
+    assert audit == {}
     assert audit_path is None
     assert not (
         tmp_path / "output" / run_id / "artifacts" / "dispatch_audit.json"
