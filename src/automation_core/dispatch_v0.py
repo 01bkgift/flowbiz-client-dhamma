@@ -426,7 +426,7 @@ def generate_dispatch_audit(
             error_code = "invalid_argument"
 
         if isinstance(exc, DispatchModeError):
-            detail: object = {"requested_mode": exc.requested_mode}
+            detail: Any = {"requested_mode": exc.requested_mode}
         elif isinstance(exc, DispatchAdapterError):
             detail = {"target": target or "unknown", "platform": platform or "unknown"}
         else:
