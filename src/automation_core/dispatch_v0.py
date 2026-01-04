@@ -430,7 +430,7 @@ def generate_dispatch_audit(
         elif isinstance(exc, DispatchAdapterError):
             detail = {"target": target or "unknown", "platform": platform or "unknown"}
         else:
-            detail = f"{type(exc).__name__}: {exc}"
+            detail = {"type": type(exc).__name__, "message": str(exc)}
 
         errors = [
             {
