@@ -57,4 +57,4 @@
 ## Integrations
 - YouTube upload uses OAuth env vars (`YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`) in `src/automation_core/youtube_upload.py`.
 - FlowBiz contract endpoints live in `app/main.py` (`/healthz`, `/v1/meta`); avoid breaking their response shape.
-
+- FlowBiz contract endpoints live in `app/main.py` (`/healthz`, `/v1/meta`); avoid breaking their response shape.
