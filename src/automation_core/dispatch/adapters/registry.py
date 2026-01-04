@@ -21,6 +21,8 @@ _ADAPTERS: tuple[DispatchAdapter, ...] = (
 def get_adapter(target: str, platform: str) -> DispatchAdapter:
     """คืน adapter แบบ deterministic จาก (target, platform)
 
+    ตรวจสอบ adapter ตามลำดับใน _ADAPTERS และคืนตัวแรกที่รองรับ.
+
     Raises:
         DispatchAdapterError: code='unknown_target' เมื่อไม่พบ adapter ที่รองรับ
     """
