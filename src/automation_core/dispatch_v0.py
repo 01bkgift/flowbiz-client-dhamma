@@ -7,8 +7,16 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from automation_core.contracts import dispatch_audit_v1 as _dispatch_audit_contracts
+from automation_core.contracts import post_content_summary_v1 as _post_summary_contracts
+from automation_core.contracts.common import _validate_run_id
 from automation_core.dispatch.adapters import DispatchAdapterError, get_adapter
 from automation_core.utils.env import parse_pipeline_enabled
+
+validate_dispatch_audit = _dispatch_audit_contracts.validate_dispatch_audit
+_build_actions = _dispatch_audit_contracts._build_actions
+validate_post_content_summary = _post_summary_contracts.validate_post_content_summary
+_post_summary_rel_path = _post_summary_contracts._post_summary_rel_path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENGINE_NAME = "dispatch_v0"
@@ -42,16 +50,6 @@ def parse_dispatch_enabled(value: str | None) -> bool:
     return value.strip().lower() in TRUE_VALUES
 
 
-def _validate_run_id(run_id: str) -> str:
-    """ตรวจสอบว่า run_id เป็น path segment เดียวและไม่ใช่ absolute path"""
-    path = Path(run_id)
-    if not run_id or path.is_absolute() or path.drive or path.root:
-        raise ValueError("run_id must be a relative path segment")
-    if len(path.parts) != 1 or any(part in (".", "..") for part in path.parts):
-        raise ValueError("run_id must not contain path separators or traversal")
-    return run_id
-
-
 def _validate_dispatch_mode(raw_mode: str | None) -> str:
     """ตรวจสอบโหมด dispatch ให้เป็นค่าที่รองรับ"""
     if raw_mode is None or not raw_mode.strip():
@@ -77,153 +75,6 @@ def _bounded_preview(text: str, limit: int = MAX_PREVIEW_CHARS) -> str:
     if len(text) <= limit:
         return text
     return text[:limit]
-
-
-def validate_post_content_summary(data: dict[str, Any], run_id: str) -> dict[str, Any]:
-    """
-    ตรวจสอบ post_content_summary เบื้องต้นตามสัญญา v1
-
-    Args:
-        data: เนื้อหา JSON ของ post_content_summary
-        run_id: run id ที่คาดหวังให้ตรงกัน
-
-    Returns:
-        dict[str, Any]: ข้อมูลเดิมที่ผ่านการตรวจสอบ
-
-    Raises:
-        ValueError: เมื่อข้อมูลไม่ตรงตามข้อกำหนดขั้นต่ำ
-    """
-    if not isinstance(data, dict):
-        raise ValueError("post_content_summary must be an object")
-    if data.get("schema_version") != "v1":
-        raise ValueError("post_content_summary.schema_version must be 'v1'")
-    if data.get("engine") != "post_templates":
-        raise ValueError("post_content_summary.engine must be 'post_templates'")
-    summary_run_id = data.get("run_id")
-    if summary_run_id is None or summary_run_id != run_id:
-        raise ValueError("post_content_summary.run_id must match run_id")
-
-    inputs = data.get("inputs")
-    if not isinstance(inputs, dict):
-        raise ValueError("post_content_summary.inputs must be an object")
-    platform = inputs.get("platform")
-    if not isinstance(platform, str) or not platform.strip():
-        raise ValueError("post_content_summary.inputs.platform is required")
-
-    outputs = data.get("outputs")
-    if not isinstance(outputs, dict):
-        raise ValueError("post_content_summary.outputs must be an object")
-    for key in ("short", "long"):
-        value = outputs.get(key)
-        if not isinstance(value, str):
-            raise ValueError(f"post_content_summary.outputs.{key} must be a string")
-    return data
-
-
-def validate_dispatch_audit(audit: dict[str, Any], run_id: str) -> dict[str, Any]:
-    """ตรวจสอบ payload dispatch_audit v1 ให้ตรงตามสัญญา"""
-    if not isinstance(audit, dict):
-        raise ValueError("dispatch_audit must be an object")
-    if audit.get("schema_version") != "v1":
-        raise ValueError("dispatch_audit.schema_version must be 'v1'")
-    if audit.get("engine") != ENGINE_NAME:
-        raise ValueError(f"dispatch_audit.engine must be '{ENGINE_NAME}'")
-
-    _validate_run_id(run_id)
-    audit_run_id = audit.get("run_id")
-    if not isinstance(audit_run_id, str):
-        raise ValueError("dispatch_audit.run_id must be a string")
-    _validate_run_id(audit_run_id)
-    if audit_run_id != run_id:
-        raise ValueError("dispatch_audit.run_id must match run_id")
-
-    checked_at = audit.get("checked_at")
-    if not isinstance(checked_at, str) or not checked_at.strip():
-        raise ValueError("dispatch_audit.checked_at is required")
-
-    inputs = audit.get("inputs")
-    if not isinstance(inputs, dict):
-        raise ValueError("dispatch_audit.inputs must be an object")
-    summary_path = inputs.get("post_content_summary")
-    if not isinstance(summary_path, str) or not summary_path.strip():
-        raise ValueError("inputs.post_content_summary is required")
-    summary_path_obj = Path(summary_path)
-    if (
-        summary_path_obj.is_absolute()
-        or summary_path_obj.drive
-        or ".." in summary_path_obj.parts
-    ):
-        raise ValueError("inputs.post_content_summary must be relative without '..'")
-
-    expected_summary_path = _post_summary_rel_path(run_id)
-    if summary_path_obj.as_posix() != expected_summary_path:
-        raise ValueError(
-            "inputs.post_content_summary must be 'output/<run_id>/artifacts/post_content_summary.json'"
-        )
-    dispatch_enabled = inputs.get("dispatch_enabled")
-    if not isinstance(dispatch_enabled, bool):
-        raise ValueError("inputs.dispatch_enabled must be a boolean")
-    mode = inputs.get("dispatch_mode")
-    if mode not in ALLOWED_MODES:
-        raise ValueError("inputs.dispatch_mode must be one of: dry_run, print_only")
-    target = inputs.get("target")
-    if not isinstance(target, str) or not target.strip():
-        raise ValueError("inputs.target is required")
-    platform = inputs.get("platform")
-    if not isinstance(platform, str) or not platform.strip():
-        raise ValueError("inputs.platform is required")
-
-    result = audit.get("result")
-    if not isinstance(result, dict):
-        raise ValueError("dispatch_audit.result must be an object")
-    status = result.get("status")
-    if status not in {"skipped", "dry_run", "printed", "failed"}:
-        raise ValueError("result.status is invalid")
-    message = result.get("message")
-    if not isinstance(message, str) or not message.strip():
-        raise ValueError("result.message is required")
-    actions = result.get("actions")
-    if not isinstance(actions, list) or len(actions) != 3:
-        raise ValueError("result.actions must contain required entries")
-    short_action, long_action, publish_action = actions
-    if short_action.get("type") != "print" or short_action.get("label") != "short":
-        raise ValueError("result.actions[0] must be print short")
-    if not isinstance(short_action.get("bytes"), int) or short_action["bytes"] < 0:
-        raise ValueError("result.actions[0].bytes must be non-negative int")
-    if long_action.get("type") != "print" or long_action.get("label") != "long":
-        raise ValueError("result.actions[1] must be print long")
-    if not isinstance(long_action.get("bytes"), int) or long_action["bytes"] < 0:
-        raise ValueError("result.actions[1].bytes must be non-negative int")
-    if publish_action.get("type") != "noop" or publish_action.get("label") != "publish":
-        raise ValueError("result.actions[2] must be noop publish")
-    if (
-        not isinstance(publish_action.get("reason"), str)
-        or not publish_action["reason"]
-    ):
-        raise ValueError("result.actions[2].reason is required")
-
-    errors = audit.get("errors")
-    if errors is None:
-        errors = []
-    if not isinstance(errors, list):
-        raise ValueError("errors must be a list")
-    for err in errors:
-        if not isinstance(err, dict):
-            raise ValueError("each error must be an object")
-        if not isinstance(err.get("code"), str) or not err["code"]:
-            raise ValueError("error.code is required")
-        if not isinstance(err.get("message"), str) or not err["message"]:
-            raise ValueError("error.message is required")
-        if err.get("step") != "dispatch.v0":
-            raise ValueError("error.step must be 'dispatch.v0'")
-        # detail is intentionally flexible; accept any type (including None)
-    return audit
-
-
-def _post_summary_rel_path(run_id: str, *, validate: bool = True) -> str:
-    if validate:
-        run_id = _validate_run_id(run_id)
-    return (Path("output") / run_id / "artifacts" / POST_SUMMARY_NAME).as_posix()
 
 
 def load_post_content_summary(
@@ -288,41 +139,6 @@ def build_dispatch_audit(
         },
         "errors": errors or [],
     }
-
-
-def _build_actions(
-    short_bytes: int,
-    long_bytes: int,
-    publish_reason: str,
-    *,
-    target: str,
-    adapter: str,
-) -> list[dict[str, Any]]:
-    short_b = short_bytes if short_bytes >= 0 else 0
-    long_b = long_bytes if long_bytes >= 0 else 0
-    return [
-        {
-            "type": "print",
-            "label": "short",
-            "bytes": short_b,
-            "adapter": adapter,
-            "target": target,
-        },
-        {
-            "type": "print",
-            "label": "long",
-            "bytes": long_b,
-            "adapter": adapter,
-            "target": target,
-        },
-        {
-            "type": "noop",
-            "label": "publish",
-            "reason": publish_reason,
-            "adapter": adapter,
-            "target": target,
-        },
-    ]
 
 
 def write_dispatch_audit(

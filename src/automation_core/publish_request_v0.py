@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from automation_core.dispatch_v0 import (
-    validate_dispatch_audit,
+from automation_core.contracts.common import _artifact_rel_path, _validate_run_id
+from automation_core.contracts.dispatch_audit_v1 import validate_dispatch_audit
+from automation_core.contracts.post_content_summary_v1 import (
     validate_post_content_summary,
+)
+from automation_core.contracts.publish_request_v1 import (
+    _compute_idempotency_key,
+    validate_publish_request,
 )
 from automation_core.utils.env import parse_pipeline_enabled
 
@@ -22,47 +26,10 @@ PUBLISH_REQUEST_NAME = "publish_request.json"
 MAX_PREVIEW_CHARS = 500
 
 
-def _validate_run_id(run_id: str) -> str:
-    """Ensure run_id is a single relative path segment."""
-    path = Path(run_id)
-    if not run_id or path.is_absolute() or path.drive or path.root:
-        raise ValueError("run_id must be a relative path segment")
-    if len(path.parts) != 1 or any(part in (".", "..") for part in path.parts):
-        raise ValueError("run_id must not contain path separators or traversal")
-    return run_id
-
-
 def _bounded_preview(text: str, limit: int = MAX_PREVIEW_CHARS) -> str:
     if len(text) <= limit:
         return text
     return text[:limit]
-
-
-def _validate_relative_path(value: str, label: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{label} is required")
-    path = Path(value)
-    if path.is_absolute() or path.drive or path.root or ".." in path.parts:
-        raise ValueError(f"{label} must be relative without '..'")
-    return value
-
-
-def _artifact_rel_path(run_id: str, filename: str, *, validate: bool = True) -> str:
-    if validate:
-        run_id = _validate_run_id(run_id)
-    return (Path("output") / run_id / "artifacts" / filename).as_posix()
-
-
-def _hash_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def _compute_idempotency_key(
-    *, run_id: str, target: str, platform: str, content_long: str
-) -> str:
-    content_hash = _hash_text(content_long)
-    raw = f"{run_id}|{target}|{platform}|{content_hash}"
-    return _hash_text(raw)
 
 
 def load_post_content_summary(
@@ -166,100 +133,6 @@ def build_publish_request(
         },
         "errors": [],
     }
-
-
-def validate_publish_request(payload: dict[str, Any], run_id: str) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        raise ValueError("publish_request must be an object")
-    if payload.get("schema_version") != "v1":
-        raise ValueError("publish_request.schema_version must be 'v1'")
-    if payload.get("engine") != ENGINE_NAME:
-        raise ValueError(f"publish_request.engine must be '{ENGINE_NAME}'")
-
-    _validate_run_id(run_id)
-    payload_run_id = payload.get("run_id")
-    if not isinstance(payload_run_id, str):
-        raise ValueError("publish_request.run_id must be a string")
-    _validate_run_id(payload_run_id)
-    if payload_run_id != run_id:
-        raise ValueError("publish_request.run_id must match run_id")
-
-    checked_at = payload.get("checked_at")
-    if not isinstance(checked_at, str) or not checked_at.strip():
-        raise ValueError("publish_request.checked_at is required")
-
-    inputs = payload.get("inputs")
-    if not isinstance(inputs, dict):
-        raise ValueError("publish_request.inputs must be an object")
-    summary_path = inputs.get("post_content_summary")
-    dispatch_path = inputs.get("dispatch_audit")
-    _validate_relative_path(summary_path, "inputs.post_content_summary")
-    _validate_relative_path(dispatch_path, "inputs.dispatch_audit")
-    platform = inputs.get("platform")
-    if not isinstance(platform, str) or not platform.strip():
-        raise ValueError("inputs.platform is required")
-    target = inputs.get("target")
-    if not isinstance(target, str) or not target.strip():
-        raise ValueError("inputs.target is required")
-
-    request = payload.get("request")
-    if not isinstance(request, dict):
-        raise ValueError("publish_request.request must be an object")
-    content_short = request.get("content_short")
-    if not isinstance(content_short, str):
-        raise ValueError("request.content_short must be a string")
-    content_long = request.get("content_long")
-    if not isinstance(content_long, str):
-        raise ValueError("request.content_long must be a string")
-    attachments = request.get("attachments")
-    if not isinstance(attachments, list):
-        raise ValueError("request.attachments must be a list")
-    if attachments:
-        raise ValueError("request.attachments must be empty in v1")
-
-    controls = payload.get("controls")
-    if not isinstance(controls, dict):
-        raise ValueError("publish_request.controls must be an object")
-    dry_run = controls.get("dry_run")
-    if dry_run is not True:
-        raise ValueError("controls.dry_run must be true")
-    allow_publish = controls.get("allow_publish")
-    if allow_publish is not False:
-        raise ValueError("controls.allow_publish must be false")
-    idempotency_key = controls.get("idempotency_key")
-    if not isinstance(idempotency_key, str) or not idempotency_key.strip():
-        raise ValueError("controls.idempotency_key is required")
-    if len(idempotency_key) != 64 or any(
-        ch not in "0123456789abcdef" for ch in idempotency_key.lower()
-    ):
-        raise ValueError("controls.idempotency_key must be 64 hex chars")
-    expected_key = _compute_idempotency_key(
-        run_id=run_id,
-        target=target,
-        platform=platform,
-        content_long=content_long,
-    )
-    if idempotency_key != expected_key:
-        raise ValueError("controls.idempotency_key must be deterministic")
-
-    policy = payload.get("policy")
-    if not isinstance(policy, dict):
-        raise ValueError("publish_request.policy must be an object")
-    if policy.get("status") != "pending":
-        raise ValueError("policy.status must be 'pending'")
-    reasons = policy.get("reasons")
-    if not isinstance(reasons, list):
-        raise ValueError("policy.reasons must be a list")
-
-    errors = payload.get("errors")
-    if errors is None:
-        errors = []
-    if not isinstance(errors, list):
-        raise ValueError("errors must be a list")
-    for error in errors:
-        if not isinstance(error, dict):
-            raise ValueError("each error must be an object")
-    return payload
 
 
 def generate_publish_request(
