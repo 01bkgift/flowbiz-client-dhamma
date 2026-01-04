@@ -1,0 +1,27 @@
+{
+  "schema_version": "v1",
+  "engine": "publish_request_v0",
+  "run_id": "run_publish_sample",
+  "checked_at": "2026-01-01T00:00:00Z",
+  "inputs": {
+    "post_content_summary": "output/run_publish_sample/artifacts/post_content_summary.json",
+    "dispatch_audit": "output/run_publish_sample/artifacts/dispatch_audit.json",
+    "platform": "youtube_community",
+    "target": "youtube_community"
+  },
+  "request": {
+    "content_short": "Short sample content.",
+    "content_long": "Long sample content for publish request.",
+    "attachments": []
+  },
+  "controls": {
+    "dry_run": true,
+    "allow_publish": false,
+    "idempotency_key": "a84a725ddce09a1a83fbecd63bbf8de9f4932beb6d1fd84cf6573dc62088ad3f"
+  },
+  "policy": {
+    "status": "pending",
+    "reasons": []
+  },
+  "errors": []
+}

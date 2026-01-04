@@ -26,6 +26,7 @@
 - **Quality Gate Artifacts:** ไฟล์สรุปคุณภาพเก็บใน `output/<run_id>/artifacts/quality_gate_summary.json`
 - **Post Content Artifacts:** ไฟล์สรุปเนื้อหาโพสต์เก็บใน `output/<run_id>/artifacts/post_content_summary.json`
 - **Dispatch Audit Artifacts:** ไฟล์ audit ของขั้น dispatch.v0 เก็บที่ `output/<run_id>/artifacts/dispatch_audit.json`
+- **Publish Request Artifacts:** ไฟล์คำขอเผยแพร่แบบ deterministic เก็บที่ `output/<run_id>/artifacts/publish_request.json`
 
 ### 2. รูปแบบเนื้อหา
 - **Metadata Format:** เมทาดาทา YouTube ต้องมีโครงสร้างเดิม (title, description, tags, SEO keywords)
@@ -224,6 +225,39 @@
 - `checked_at` คือเวลารันจริง (audit time) จึงไม่ deterministic
 - การเปลี่ยนแปลงแบบ breaking ต้อง bump `schema_version` และอัปเดตไฟล์อ้างอิงใน `samples/reference/dispatch/`
 
+### 13. สัญญา Publish Request (คงที่)
+
+**สคีมาไฟล์ `output/<run_id>/artifacts/publish_request.json` (publish_request.v0) ถือว่า STABLE**
+
+**ฟิลด์ที่ต้องมี (required):**
+- `schema_version` (string, ปัจจุบัน `v1`)
+- `engine` (string, ต้องเป็น `publish_request_v0`)
+- `run_id` (string)
+- `checked_at` (string, ISO8601 UTC) — ไม่ deterministic
+- `inputs` (object)
+  - `post_content_summary` (string, relative path)
+  - `dispatch_audit` (string, relative path)
+  - `platform` (string)
+  - `target` (string)
+- `request` (object)
+  - `content_short` (string)
+  - `content_long` (string)
+  - `attachments` (list, ต้องเป็น `[]` ใน v1)
+- `controls` (object)
+  - `dry_run` (bool, ต้องเป็น `true`)
+  - `allow_publish` (bool, ต้องเป็น `false`)
+  - `idempotency_key` (string, sha256 hex 64)
+- `policy` (object)
+  - `status` (`pending`)
+  - `reasons` (list[object])
+- `errors` (list[object], ยอมให้ว่าง)
+
+**กติกาสำคัญ:**
+- ทุก path ต้องเป็น relative เท่านั้น (ห้าม absolute หรือมี `..`)
+- `checked_at` คือเวลารันจริง (audit time) จึงไม่ deterministic
+- `idempotency_key` ต้องคำนวณจาก `run_id|target|platform|sha256(content_long)` แบบ deterministic
+- การเปลี่ยนแปลงแบบ breaking ต้อง bump `schema_version` และอัปเดตไฟล์อ้างอิงใน `samples/reference/publish/`
+
 ## Assets Baseline v1
 
 นโยบาย assets เป็น baseline ที่ต้องคงที่สำหรับ repo สาธารณะ เพื่อความปลอดภัย
@@ -294,6 +328,10 @@ Policy source-of-truth: `docs/ASSETS_POLICY.md`
 ### 22. `samples/reference/dispatch/dispatch_audit_v1_example.json`
 - **แทนอะไร:** สัญญา dispatch audit เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `dispatch_audit.json`)
 - **จุดที่ต้องคงที่:** ฟิลด์ inputs/result/errors ตามสัญญา + พาธต้องเป็น relative ทั้งหมด + status/target/mode ต้อง deterministic จากอินพุต + แม้ dispatch disabled ต้องมี action=print เพื่อ audit preview และ noop publish
+
+### 23. `samples/reference/publish/publish_request_v1_example.json`
+- **แทนอะไร:** สัญญา publish request เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `publish_request.json`)
+- **จุดที่ต้องคงที่:** ฟิลด์ inputs/request/controls/policy/errors ตามสัญญา + ทุกพาธเป็น relative + `idempotency_key` deterministic
 
 ## ขั้นตอนเปรียบเทียบ (Comparison Procedure)
 

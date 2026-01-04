@@ -64,8 +64,9 @@ async def meta():
 async def home(request: Request):
     if current_user(request):
         return _redirect("/dashboard")
-    hint = f"{config.ADMIN_USERNAME}/{config.ADMIN_PASSWORD}"
+    hint = "ตั้งค่า ADMIN_USERNAME/ADMIN_PASSWORD ในไฟล์ .env"
     return templates.TemplateResponse(
+        request,
         "login.html",
         {"request": request, "app_name": config.APP_NAME, "admin_hint": hint},
     )
@@ -76,8 +77,9 @@ async def login(request: Request, username: str = Form(...), password: str = For
     if check_credentials(username, password):
         login_user(request, username)
         return _redirect("/dashboard")
-    hint = f"{config.ADMIN_USERNAME}/{config.ADMIN_PASSWORD}"
+    hint = "ตั้งค่า ADMIN_USERNAME/ADMIN_PASSWORD ในไฟล์ .env"
     return templates.TemplateResponse(
+        request,
         "login.html",
         {
             "request": request,
@@ -98,12 +100,9 @@ async def logout(request: Request):
 @app.get("/forgot", response_class=HTMLResponse)
 async def forgot(request: Request):
     return templates.TemplateResponse(
+        request,
         "forgot.html",
-        {
-            "request": request,
-            "admin_user": config.ADMIN_USERNAME,
-            "admin_pass": config.ADMIN_PASSWORD,
-        },
+        {"request": request, "admin_user": config.ADMIN_USERNAME},
     )
 
 
@@ -132,6 +131,7 @@ async def dashboard(request: Request):
     # Optional success banner after restart
     restart_ok = request.query_params.get("restarted") in {"1", "true", "yes"}
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
             "request": request,
@@ -148,7 +148,9 @@ async def agents_list(request: Request):
     require_login(request)
     job_map = {a["key"]: JOB_MANAGER.get(a["key"]) for a in AGENTS}
     return templates.TemplateResponse(
-        "agents.html", {"request": request, "agents": AGENTS, "job_map": job_map}
+        request,
+        "agents.html",
+        {"request": request, "agents": AGENTS, "job_map": job_map},
     )
 
 
@@ -160,7 +162,9 @@ async def agent_detail(request: Request, agent_key: str):
         return _redirect("/agents")
     job = JOB_MANAGER.get(agent_key)
     return templates.TemplateResponse(
-        "agent_detail.html", {"request": request, "agent": agent, "job": job}
+        request,
+        "agent_detail.html",
+        {"request": request, "agent": agent, "job": job},
     )
 
 
@@ -303,7 +307,9 @@ async def server_restart_get(request: Request):
 async def settings_view(request: Request):
     require_login(request)
     return templates.TemplateResponse(
-        "settings.html", {"request": request, "cfg": config}
+        request,
+        "settings.html",
+        {"request": request, "cfg": config},
     )
 
 
@@ -319,7 +325,9 @@ async def wizard_view(request: Request):
             "โปรดเปลี่ยนชื่อผู้ใช้/รหัสผ่านเริ่มต้น (ADMIN_USERNAME/ADMIN_PASSWORD) ใน .env"
         )
     return templates.TemplateResponse(
-        "wizard.html", {"request": request, "warnings": warnings}
+        request,
+        "wizard.html",
+        {"request": request, "warnings": warnings},
     )
 
 
