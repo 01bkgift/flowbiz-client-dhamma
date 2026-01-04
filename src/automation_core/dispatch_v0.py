@@ -314,9 +314,6 @@ def generate_dispatch_audit(
 
     # pre-compute defaults for failure audit paths
     post_summary_rel = _post_summary_rel_path(run_id, validate=False)
-    mode = (
-        "dry_run"  # default dispatch mode; also used in failure audits if mode validation fails
-    )
     enabled = (
         dispatch_enabled
         if dispatch_enabled is not None
