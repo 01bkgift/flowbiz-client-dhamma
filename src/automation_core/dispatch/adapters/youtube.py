@@ -17,8 +17,8 @@ class YoutubeAdapter:
         publish_reason: str,
         target: str,
     ) -> list[dict[str, Any]]:
-        short_b = short_bytes if short_bytes >= 0 else 0
-        long_b = long_bytes if long_bytes >= 0 else 0
+        short_b = max(0, short_bytes)
+        long_b = max(0, long_bytes)
         return [
             {
                 "type": "print",
