@@ -11,6 +11,7 @@ from automation_core.dispatch_v0 import (
     cli_main,
     generate_dispatch_audit,
     parse_dispatch_enabled,
+    validate_dispatch_audit,
     validate_post_content_summary,
 )
 
@@ -60,6 +61,20 @@ def test_validate_post_content_summary_invalid_schema():
     }
     with pytest.raises(ValueError, match="schema_version"):
         validate_post_content_summary(payload, "run_x")
+
+
+def test_validate_dispatch_audit_happy_path(tmp_path, monkeypatch):
+    run_id = "run_validate_audit"
+    _write_post_summary(tmp_path, run_id)
+    monkeypatch.setenv("PIPELINE_ENABLED", "true")
+
+    audit, _ = generate_dispatch_audit(run_id, base_dir=tmp_path)
+
+    validated = validate_dispatch_audit(audit, run_id)
+    actions = validated["result"]["actions"]
+    assert [a["label"] for a in actions] == ["short", "long", "publish"]
+    assert actions[0]["bytes"] == len("short content")
+    assert actions[2]["type"] == "noop"
 
 
 def test_dispatch_audit_uses_relative_paths(tmp_path, monkeypatch):
@@ -158,9 +173,14 @@ def test_dispatch_missing_post_summary_raises(tmp_path, monkeypatch):
 
     with pytest.raises(FileNotFoundError):
         generate_dispatch_audit(run_id, base_dir=tmp_path)
+    audit_path = tmp_path / "output" / run_id / "artifacts" / "dispatch_audit.json"
+    assert audit_path.exists()
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert audit["result"]["status"] == "failed"
+    assert audit["errors"]
 
 
-def test_validate_dispatch_mode_invalid(tmp_path, monkeypatch):
+def test_dispatch_mode_invalid_fails_and_writes_failed_audit(tmp_path, monkeypatch):
     run_id = "run_invalid_mode"
     _write_post_summary(tmp_path, run_id)
     monkeypatch.setenv("PIPELINE_ENABLED", "true")
@@ -169,6 +189,11 @@ def test_validate_dispatch_mode_invalid(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="DISPATCH_MODE"):
         generate_dispatch_audit(run_id, base_dir=tmp_path)
+    audit_path = tmp_path / "output" / run_id / "artifacts" / "dispatch_audit.json"
+    assert audit_path.exists()
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert audit["result"]["status"] == "failed"
+    assert audit["errors"]
 
 
 @pytest.mark.parametrize(
@@ -204,3 +229,14 @@ def test_validate_post_content_summary_other_errors():
     bad_outputs = base | {"outputs": {"short": 1, "long": "b"}}
     with pytest.raises(ValueError, match="outputs.short"):
         validate_post_content_summary(bad_outputs, "good")
+
+
+def test_actions_are_deterministic(tmp_path, monkeypatch):
+    run_id = "run_actions_det"
+    _write_post_summary(tmp_path, run_id, short="hello", long="world")
+    monkeypatch.setenv("PIPELINE_ENABLED", "true")
+
+    audit1, _ = generate_dispatch_audit(run_id, base_dir=tmp_path)
+    audit2, _ = generate_dispatch_audit(run_id, base_dir=tmp_path)
+
+    assert audit1["result"]["actions"] == audit2["result"]["actions"]
