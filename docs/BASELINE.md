@@ -25,7 +25,6 @@
 - **Video Render Artifacts:** ผลลัพธ์วิดีโอเก็บใน `output/<run_id>/artifacts/` โดยมีไฟล์ `video_render_summary.json` และไฟล์ MP4 แบบ `<slug>_<sha256[:12]>.mp4`
 - **Quality Gate Artifacts:** ไฟล์สรุปคุณภาพเก็บใน `output/<run_id>/artifacts/quality_gate_summary.json`
 - **Post Content Artifacts:** ไฟล์สรุปเนื้อหาโพสต์เก็บใน `output/<run_id>/artifacts/post_content_summary.json`
-- **Dispatch Audit Artifacts:** ไฟล์ audit ของขั้น dispatch.v0 เก็บที่ `output/<run_id>/artifacts/dispatch_audit.json`
 
 ### 2. รูปแบบเนื้อหา
 - **Metadata Format:** เมทาดาทา YouTube ต้องมีโครงสร้างเดิม (title, description, tags, SEO keywords)
@@ -198,32 +197,6 @@
 - `inputs.sources` อาจมีค่าพิเศษ `env:PIPELINE_PARAMS_JSON` ที่แทนการอ่านค่าจาก environment variable
 - ตัวอย่างอ้างอิง: `samples/reference/post/post_content_summary_v1_example.json`
 
-### 12. สัญญา Dispatch Audit Summary (คงที่)
-
-**สคีมาไฟล์ `output/<run_id>/artifacts/dispatch_audit.json` (dispatch.v0) ถือว่า STABLE**
-
-**ฟิลด์ที่ต้องมี (required):**
-- `schema_version` (string, ปัจจุบัน `v1`)
-- `engine` (string, ต้องเป็น `dispatch_v0`)
-- `run_id` (string)
-- `checked_at` (string, ISO8601 UTC) — ไม่ deterministic
-- `inputs` (object)
-  - `post_content_summary` (string, relative path)
-  - `dispatch_enabled` (bool)
-  - `dispatch_mode` (`dry_run` | `print_only`)
-  - `target` (string)
-  - `platform` (string)
-- `result` (object)
-  - `status` (`skipped` | `dry_run` | `printed` | `failed`)
-  - `message` (string)
-  - `actions` (list[object], อย่างน้อยมีรายการ print/long/short และ noop publish พร้อมเหตุผล)
-- `errors` (list[object], ยอมให้ว่าง)
-
-**กติกาสำคัญ:**
-- ทุก path ต้องเป็น relative เท่านั้น (ห้าม absolute หรือมี `..`)
-- `checked_at` คือเวลารันจริง (audit time) จึงไม่ deterministic
-- การเปลี่ยนแปลงแบบ breaking ต้อง bump `schema_version` และอัปเดตไฟล์อ้างอิงใน `samples/reference/dispatch/`
-
 ## Assets Baseline v1
 
 นโยบาย assets เป็น baseline ที่ต้องคงที่สำหรับ repo สาธารณะ เพื่อความปลอดภัย
@@ -290,10 +263,6 @@ Policy source-of-truth: `docs/ASSETS_POLICY.md`
 ### 21. `samples/reference/post/post_content_summary_v1_example.json`
 - **แทนอะไร:** สัญญา post content summary เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `post_content_summary.json`)
 - **จุดที่ต้องคงที่:** ฟิลด์สำคัญ + พาธแบบ relative เท่านั้น + แฮชแท็กต้อง normalize แบบ deterministic + โครงสร้าง inputs/outputs ต้องไม่ drift + `inputs.sources` เป็นรายการ used sources เท่านั้น
-
-### 22. `samples/reference/dispatch/dispatch_audit_v1_example.json`
-- **แทนอะไร:** สัญญา dispatch audit เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `dispatch_audit.json`)
-- **จุดที่ต้องคงที่:** ฟิลด์ inputs/result/errors ตามสัญญา + พาธต้องเป็น relative ทั้งหมด + status/target/mode ต้อง deterministic จากอินพุต + แม้ dispatch disabled ต้องมี action=print เพื่อ audit preview และ noop publish
 
 ## ขั้นตอนเปรียบเทียบ (Comparison Procedure)
 
