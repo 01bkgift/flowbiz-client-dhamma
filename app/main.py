@@ -64,7 +64,7 @@ async def meta():
 async def home(request: Request):
     if current_user(request):
         return _redirect("/dashboard")
-    hint = f"{config.ADMIN_USERNAME}/{config.ADMIN_PASSWORD}"
+    hint = "ตั้งค่า ADMIN_USERNAME/ADMIN_PASSWORD ในไฟล์ .env"
     return templates.TemplateResponse(
         request,
         "login.html",
@@ -77,7 +77,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
     if check_credentials(username, password):
         login_user(request, username)
         return _redirect("/dashboard")
-    hint = f"{config.ADMIN_USERNAME}/{config.ADMIN_PASSWORD}"
+    hint = "ตั้งค่า ADMIN_USERNAME/ADMIN_PASSWORD ในไฟล์ .env"
     return templates.TemplateResponse(
         request,
         "login.html",
@@ -102,11 +102,7 @@ async def forgot(request: Request):
     return templates.TemplateResponse(
         request,
         "forgot.html",
-        {
-            "request": request,
-            "admin_user": config.ADMIN_USERNAME,
-            "admin_pass": config.ADMIN_PASSWORD,
-        },
+        {"request": request, "admin_user": config.ADMIN_USERNAME},
     )
 
 
