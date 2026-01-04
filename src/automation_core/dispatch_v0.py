@@ -396,7 +396,7 @@ def generate_dispatch_audit(
                 "code": error_code,
                 "message": "Dispatch failed - see detail",
                 "step": "dispatch.v0",
-                "detail": str(exc),
+                "detail": f"{type(exc).__name__}: {exc}",
             }
         ]
         failure_audit = build_dispatch_audit(
