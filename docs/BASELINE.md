@@ -27,6 +27,7 @@
 - **Post Content Artifacts:** ไฟล์สรุปเนื้อหาโพสต์เก็บใน `output/<run_id>/artifacts/post_content_summary.json`
 - **Dispatch Audit Artifacts:** ไฟล์ audit ของขั้น dispatch.v0 เก็บที่ `output/<run_id>/artifacts/dispatch_audit.json`
 - **Publish Request Artifacts:** ไฟล์คำขอเผยแพร่แบบ deterministic เก็บที่ `output/<run_id>/artifacts/publish_request.json`
+- **Preview Summary Artifacts:** ไฟล์สรุป preview เก็บที่ `output/<run_id>/artifacts/preview_summary.json`
 
 ### 2. รูปแบบเนื้อหา
 - **Metadata Format:** เมทาดาทา YouTube ต้องมีโครงสร้างเดิม (title, description, tags, SEO keywords)
@@ -258,6 +259,43 @@
 - `idempotency_key` ต้องคำนวณจาก `run_id|target|platform|sha256(content_long)` แบบ deterministic
 - การเปลี่ยนแปลงแบบ breaking ต้อง bump `schema_version` และอัปเดตไฟล์อ้างอิงใน `samples/reference/publish/`
 
+### 14. สัญญา Preview Summary (คงที่)
+
+**สคีมาไฟล์ `output/<run_id>/artifacts/preview_summary.json` (preview_summary_v0) ถือว่า STABLE**
+
+**ฟิลด์ที่ต้องมี (required):**
+- `schema_version` (string, ปัจจุบัน `v1`)
+- `engine` (string, ต้องเป็น `preview_summary_v0`)
+- `run_id` (string)
+- `checked_at` (string, ISO8601 UTC) — ไม่ deterministic
+- `inputs` (object)
+  - `publish_request` (string, relative path)
+  - `post_content_summary` (string, relative path)
+  - `dispatch_audit` (string, relative path)
+  - `platform` (string)
+  - `target` (string)
+- `summary` (object)
+  - `target` (string)
+  - `platform` (string)
+  - `mode` (`dry_run`)
+  - `actions` (list[object], ต้องมี print/short, print/long, noop/publish ตามลำดับ)
+- `policy` (object)
+  - `status` (`preview_only`)
+  - `reasons` (list[string], อาจว่าง)
+- `errors` (list[object], ยอมให้ว่าง)
+
+**กติกาสำคัญ (determinism):**
+- `checked_at` คือเวลารันจริง (audit time) จึงไม่ deterministic
+- ฟิลด์อื่นต้อง deterministic จาก `publish_request.json`
+- ทุกพาธต้องเป็น relative เท่านั้น (ห้าม absolute หรือมี `..`)
+- `summary.actions[*].preview` ต้องไม่เกิน 500 ตัวอักษร
+
+**นโยบายการเปลี่ยนแปลง (breaking-change policy):**
+- การเปลี่ยนแปลงแบบ breaking ต้อง bump `schema_version` และอัปเดตไฟล์อ้างอิงใน `samples/reference/preview/`
+- การเพิ่มฟิลด์แบบ additive ทำได้ ถ้ายัง backward compatible
+
+**ตัวอย่างอ้างอิง:** `samples/reference/preview/preview_summary_v1_example.json`
+
 ## Assets Baseline v1
 
 นโยบาย assets เป็น baseline ที่ต้องคงที่สำหรับ repo สาธารณะ เพื่อความปลอดภัย
@@ -332,6 +370,10 @@ Policy source-of-truth: `docs/ASSETS_POLICY.md`
 ### 23. `samples/reference/publish/publish_request_v1_example.json`
 - **แทนอะไร:** สัญญา publish request เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `publish_request.json`)
 - **จุดที่ต้องคงที่:** ฟิลด์ inputs/request/controls/policy/errors ตามสัญญา + ทุกพาธเป็น relative + `idempotency_key` deterministic
+
+### 24. `samples/reference/preview/preview_summary_v1_example.json`
+- **แทนอะไร:** สัญญา preview summary เวอร์ชัน 1 (ไฟล์อ้างอิงสำหรับ `preview_summary.json`)
+- **จุดที่ต้องคงที่:** ฟิลด์ inputs/summary/policy/errors ตามสัญญา + ทุกพาธเป็น relative + `summary.actions` ต้องคงลำดับ
 
 ## ขั้นตอนเปรียบเทียบ (Comparison Procedure)
 

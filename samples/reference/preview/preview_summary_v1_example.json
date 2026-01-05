@@ -1,0 +1,42 @@
+{
+  "schema_version": "v1",
+  "engine": "preview_summary_v0",
+  "run_id": "run_preview_sample",
+  "checked_at": "2026-01-01T00:00:00Z",
+  "inputs": {
+    "publish_request": "output/run_preview_sample/artifacts/publish_request.json",
+    "post_content_summary": "output/run_preview_sample/artifacts/post_content_summary.json",
+    "dispatch_audit": "output/run_preview_sample/artifacts/dispatch_audit.json",
+    "platform": "youtube",
+    "target": "youtube_community"
+  },
+  "summary": {
+    "target": "youtube_community",
+    "platform": "youtube",
+    "mode": "dry_run",
+    "actions": [
+      {
+        "type": "print",
+        "label": "short",
+        "bytes": 21,
+        "preview": "Short sample content."
+      },
+      {
+        "type": "print",
+        "label": "long",
+        "bytes": 40,
+        "preview": "Long sample content for preview summary."
+      },
+      {
+        "type": "noop",
+        "label": "publish",
+        "reason": "no_publish_in_v0"
+      }
+    ]
+  },
+  "policy": {
+    "status": "preview_only",
+    "reasons": []
+  },
+  "errors": []
+}
