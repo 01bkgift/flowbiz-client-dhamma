@@ -1,22 +1,26 @@
 from __future__ import annotations
 
-import hashlib
 from typing import Any
 
 from automation_core.adapters.base import AdapterPreview
 from automation_core.adapters.preview import (
+    MAX_PREVIEW_CHARS,
     build_bounded_preview,
     preview_from_publish_request,
 )
-from automation_core.adapters.registry import AdapterRegistry
+from automation_core.adapters.registry import AdapterRegistry, get_default_registry
+from automation_core.contracts import publish_request_v1
 
 
 def _expected_idempotency_key(
     *, run_id: str, target: str, platform: str, content_long: str
 ) -> str:
-    content_hash = hashlib.sha256(content_long.encode("utf-8")).hexdigest()
-    raw = f"{run_id}|{target}|{platform}|{content_hash}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return publish_request_v1._compute_idempotency_key(
+        run_id=run_id,
+        target=target,
+        platform=platform,
+        content_long=content_long,
+    )
 
 
 def _make_publish_request(
@@ -143,3 +147,60 @@ def test_preview_unknown_target_returns_error_preview():
     assert preview["errors"]
     assert preview["errors"][0]["code"] == "unknown_target"
     assert preview["actions"][2]["reason"] == "no_publish_in_v0"
+
+
+def test_preview_end_to_end_with_default_registry_success():
+    long_text = "x" * (MAX_PREVIEW_CHARS + 50)
+    payload = _make_publish_request(
+        target="youtube_community",
+        platform="youtube",
+        long=long_text,
+    )
+    registry = get_default_registry()
+
+    preview = preview_from_publish_request(payload, registry=registry)
+
+    assert preview["errors"] == []
+    assert preview["target"] == "youtube_community"
+    assert preview["platform"] == "youtube"
+    assert preview["mode"] == "dry_run"
+    actions = preview["actions"]
+    assert [(action["type"], action["label"]) for action in actions] == [
+        ("print", "short"),
+        ("print", "long"),
+        ("noop", "publish"),
+    ]
+    assert actions[0]["bytes"] == len(
+        payload["request"]["content_short"].encode("utf-8")
+    )
+    assert actions[0]["preview"] == payload["request"]["content_short"]
+    assert actions[1]["bytes"] == len(long_text.encode("utf-8"))
+    assert actions[1]["preview"] == long_text[:MAX_PREVIEW_CHARS]
+    assert actions[2]["reason"] == "no_publish_in_v0"
+
+
+def test_preview_unknown_target_returns_structured_error():
+    payload = _make_publish_request(target="tiktok")
+    registry = get_default_registry()
+
+    preview = preview_from_publish_request(payload, registry=registry)
+
+    assert preview["errors"] == [
+        {
+            "code": "unknown_target",
+            "message": "unknown_target: target=tiktok",
+            "detail": None,
+            "step": "adapter.preview",
+        }
+    ]
+    actions = preview["actions"]
+    assert [(action["type"], action["label"]) for action in actions] == [
+        ("print", "short"),
+        ("print", "long"),
+        ("noop", "publish"),
+    ]
+    assert actions[0]["bytes"] == 0
+    assert actions[0]["preview"] == ""
+    assert actions[1]["bytes"] == 0
+    assert actions[1]["preview"] == ""
+    assert actions[2]["reason"] == "no_publish_in_v0"

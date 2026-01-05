@@ -54,4 +54,8 @@ class AdapterRegistry:
 
 
 def get_default_registry() -> AdapterRegistry:
-    return AdapterRegistry()
+    registry = AdapterRegistry()
+    from .noop import NoopAdapter
+
+    registry.register(NoopAdapter())
+    return registry
