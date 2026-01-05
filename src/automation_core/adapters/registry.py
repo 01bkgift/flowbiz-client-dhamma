@@ -10,22 +10,35 @@ class AdapterRegistry:
 
     def register(self, adapter: AdapterProtocol) -> None:
         target = adapter.target()
-        if not isinstance(target, str) or not target.strip():
+        if not isinstance(target, str):
             raise AdapterError(
                 code="invalid_target",
                 message="invalid_target: target must be a non-empty string",
             )
-        if target not in ALLOWED_TARGETS_V0:
+        normalized_target = target.strip()
+        if not normalized_target:
+            raise AdapterError(
+                code="invalid_target",
+                message="invalid_target: target must be a non-empty string",
+            )
+        if normalized_target != target:
+            raise AdapterError(
+                code="invalid_target",
+                message=(
+                    "invalid_target: target must not contain leading or trailing whitespace"
+                ),
+            )
+        if normalized_target not in ALLOWED_TARGETS_V0:
             raise AdapterError(
                 code="disallowed_target",
-                message=f"disallowed_target: target={target}",
+                message=f"disallowed_target: target={normalized_target}",
             )
-        if target in self._adapters:
+        if normalized_target in self._adapters:
             raise AdapterError(
                 code="duplicate_target",
-                message=f"duplicate_target: target={target}",
+                message=f"duplicate_target: target={normalized_target}",
             )
-        self._adapters[target] = adapter
+        self._adapters[normalized_target] = adapter
 
     def get(self, target: str) -> AdapterProtocol:
         adapter = self._adapters.get(target)

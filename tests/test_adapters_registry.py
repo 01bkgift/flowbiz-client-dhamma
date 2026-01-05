@@ -51,3 +51,48 @@ def test_registry_unknown_target_error_code_message_stable():
         registry.get("tiktok")
     assert excinfo.value.code == "unknown_target"
     assert excinfo.value.message == "unknown_target: target=tiktok"
+
+
+def test_registry_register_rejects_empty_target():
+    registry = AdapterRegistry()
+    with pytest.raises(AdapterError) as excinfo:
+        registry.register(StubAdapter(""))
+    assert excinfo.value.code == "invalid_target"
+    assert excinfo.value.message == "invalid_target: target must be a non-empty string"
+
+
+def test_registry_register_rejects_whitespace_target():
+    registry = AdapterRegistry()
+    with pytest.raises(AdapterError) as excinfo:
+        registry.register(StubAdapter(" youtube"))
+    assert excinfo.value.code == "invalid_target"
+    assert (
+        excinfo.value.message
+        == "invalid_target: target must not contain leading or trailing whitespace"
+    )
+
+
+def test_registry_register_rejects_disallowed_target():
+    registry = AdapterRegistry()
+    with pytest.raises(AdapterError) as excinfo:
+        registry.register(StubAdapter("tiktok"))
+    assert excinfo.value.code == "disallowed_target"
+    assert excinfo.value.message == "disallowed_target: target=tiktok"
+
+
+def test_registry_register_rejects_non_string_target():
+    class NonStringTargetAdapter:
+        def target(self) -> object:
+            return 123
+
+        def validate(self, publish_request: dict[str, Any]) -> None:
+            return None
+
+        def build_preview(self, publish_request: dict[str, Any]) -> AdapterPreview:
+            raise NotImplementedError
+
+    registry = AdapterRegistry()
+    with pytest.raises(AdapterError) as excinfo:
+        registry.register(NonStringTargetAdapter())
+    assert excinfo.value.code == "invalid_target"
+    assert excinfo.value.message == "invalid_target: target must be a non-empty string"

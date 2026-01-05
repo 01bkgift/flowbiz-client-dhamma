@@ -24,7 +24,7 @@ class AdapterPreview(TypedDict):
 
 
 class AdapterProtocol(Protocol):
-    def target(self) -> str:
+    def target(self) -> AdapterTarget:
         """Return the adapter target string."""
 
     def validate(self, publish_request: dict[str, Any]) -> None:
