@@ -54,4 +54,9 @@ class AdapterRegistry:
 
 
 def get_default_registry() -> AdapterRegistry:
-    return AdapterRegistry()
+    """Return the default v0 adapter registry used for deterministic previews."""
+    registry = AdapterRegistry()
+    from .noop import NoopAdapter
+
+    registry.register(NoopAdapter(target="youtube_community"))
+    return registry
