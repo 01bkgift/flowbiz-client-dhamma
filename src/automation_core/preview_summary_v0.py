@@ -130,10 +130,10 @@ def build_preview_summary(
 ) -> dict[str, Any]:
     checked = (checked_at or datetime.now(tz=UTC)).isoformat().replace("+00:00", "Z")
     inputs = publish_request["inputs"]
-    post_summary = str(inputs["post_content_summary"])
-    dispatch_audit = str(inputs["dispatch_audit"])
-    platform = str(inputs["platform"])
-    target = str(inputs["target"])
+    post_summary = inputs["post_content_summary"]
+    dispatch_audit = inputs["dispatch_audit"]
+    platform = inputs["platform"]
+    target = inputs["target"]
     summary_actions = [dict(action) for action in preview["actions"]]
     summary_errors = [dict(error) for error in preview["errors"]]
     payload = {
@@ -246,9 +246,7 @@ def validate_preview_summary(payload: dict[str, Any], run_id: str) -> dict[str, 
         if not isinstance(reason, str):
             raise ValueError("policy.reasons must be a list of strings")
 
-    errors = payload.get("errors")
-    if errors is None:
-        errors = []
+    errors = payload.get("errors") or []
     if not isinstance(errors, list):
         raise ValueError("errors must be a list")
     _validate_errors(errors)
@@ -267,9 +265,9 @@ def generate_preview_summary(
         return {}, None
 
     publish_rel, publish_request = load_publish_request(run_id, base_dir)
-    inputs = publish_request.get("inputs") or {}
-    target = str(inputs.get("target") or "")
-    platform = str(inputs.get("platform") or "")
+    inputs = publish_request["inputs"]
+    target = inputs["target"]
+    platform = inputs["platform"]
     preview = preview_from_publish_request(
         publish_request, registry=get_default_registry()
     )
