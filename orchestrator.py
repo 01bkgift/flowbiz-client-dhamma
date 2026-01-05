@@ -28,6 +28,12 @@ from automation_core import (  # noqa: E402
     publish_request_v0,
     youtube_upload,
 )
+from automation_core.adapters import (  # noqa: E402
+    ALLOWED_TARGETS_V0,
+    AdapterRegistry,
+    preview_from_publish_request,
+)
+from automation_core.adapters.noop import NoopAdapter  # noqa: E402
 from automation_core.utils.env import parse_pipeline_enabled  # noqa: E402
 
 POST_TEMPLATES_ALIASES = {"post_templates", "post.templates"}
@@ -59,6 +65,22 @@ def log(msg: str, level="INFO"):
     """พิมพ์ log พร้อม timestamp"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [{level}] {msg}")
+
+
+class PreviewError(Exception):
+    """Structured preview error propagated from adapter preview layer."""
+
+    def __init__(self, preview: dict[str, object]) -> None:
+        self.preview = preview
+        self.preview_json = json.dumps(preview, ensure_ascii=False, indent=2)
+        super().__init__(self.preview_json)
+
+
+def _build_preview_registry() -> AdapterRegistry:
+    registry = AdapterRegistry()
+    for target in sorted(ALLOWED_TARGETS_V0):
+        registry.register(NoopAdapter(target=target))
+    return registry
 
 
 def _artifact_output_rel(run_id: str, filename: str) -> str:
@@ -100,6 +122,19 @@ def _dispatch_audit_output_rel(run_id: str) -> str:
         path แบบ relative ของไฟล์ dispatch_audit.json
     """
     return _artifact_output_rel(run_id, "dispatch_audit.json")
+
+
+def _publish_request_output_rel(run_id: str) -> str:
+    """
+    สร้าง path แบบ relative สำหรับไฟล์ publish_request.json
+
+    Args:
+        run_id: รหัสการรัน pipeline ที่ใช้ในการสร้างโฟลเดอร์ย่อยใน output
+
+    Returns:
+        path แบบ relative ของไฟล์ publish_request.json
+    """
+    return _artifact_output_rel(run_id, "publish_request.json")
 
 
 def _run_post_templates_step(run_id: str, root_dir: Path) -> str:
@@ -159,6 +194,31 @@ def _run_publish_request_v0_step(run_id: str, root_dir: Path) -> str:
         publish_request_v0.generate_publish_request,
         "Publish request v0",
     )
+
+
+def _run_preview_step(run_id: str, root_dir: Path) -> str:
+    """
+    รัน preview แบบ deterministic จาก publish_request.json (dry-run only)
+    """
+    if not parse_pipeline_enabled(os.environ.get("PIPELINE_ENABLED")):
+        log("Pipeline disabled by PIPELINE_ENABLED=false", "INFO")
+        return "skipped"
+
+    publish_rel = _publish_request_output_rel(run_id)
+    publish_path = root_dir / publish_rel
+    if not publish_path.is_file():
+        raise FileNotFoundError(f"Publish request not found: {publish_rel}")
+
+    payload = read_json(publish_path)
+    if not isinstance(payload, dict):
+        raise ValueError("publish_request must be a JSON object")
+
+    preview = preview_from_publish_request(payload, registry=_build_preview_registry())
+    preview_json = json.dumps(preview, ensure_ascii=False, indent=2)
+    print(preview_json)
+    if preview.get("errors"):
+        raise PreviewError(preview)
+    return "preview"
 
 
 def _run_artifact_generation_step(
@@ -2628,6 +2688,13 @@ def agent_publish_request_v0(_step, run_dir: Path):
     return _run_publish_request_v0_step(run_id, root_dir)
 
 
+def agent_preview(_step, run_dir: Path):
+    """รัน preview จาก publish_request.json"""
+    run_id = run_dir.name
+    root_dir = ROOT.resolve()
+    return _run_preview_step(run_id, root_dir)
+
+
 def _youtube_upload_parse_int_env(name: str, default: int) -> int:
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
@@ -3679,6 +3746,7 @@ AGENTS = {
     "post.templates": agent_post_templates,
     "dispatch.v0": agent_dispatch_v0,
     "publish_request.v0": agent_publish_request_v0,
+    "preview": agent_preview,
     "youtube.upload": agent_youtube_upload,
     "Localization": agent_localization,
     "ThumbnailGenerator": agent_thumbnail_generator,
@@ -3732,6 +3800,7 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     )
     has_dispatch_v0 = _pipeline_has_step("dispatch.v0")
     has_publish_request_v0 = _pipeline_has_step("publish_request.v0")
+    has_preview = _pipeline_has_step("preview")
 
     log(f"Pipeline: {pipeline_name} ({len(steps)} steps)")
 
@@ -3754,6 +3823,7 @@ def run_pipeline(pipeline_path: Path, run_id: str):
     post_templates_ran = False
     dispatch_ran = False
     publish_request_ran = False
+    preview_ran = False
 
     def _run_dispatch_once() -> None:
         """เรียก dispatch_v0 หนึ่งครั้งเมื่อยังไม่ได้รันและไม่มี step dispatch.v0 ระบุไว้"""
@@ -3763,10 +3833,10 @@ def run_pipeline(pipeline_path: Path, run_id: str):
         try:
             _run_dispatch_v0_step(run_id, root_dir)
             dispatch_ran = True
-            _run_publish_request_once()
         except Exception as e:
             log(f"ERROR in dispatch_v0: {e}", "ERROR")
             raise
+        _run_publish_request_once()
 
     def _run_publish_request_once() -> None:
         """เรียก publish_request_v0 หลัง dispatch_v0 เมื่อยังไม่ได้รันและไม่มี step ระบุไว้"""
@@ -3778,10 +3848,29 @@ def run_pipeline(pipeline_path: Path, run_id: str):
             log("Publish request v0: skipped (dispatch_audit missing)")
             return
         try:
-            _run_publish_request_v0_step(run_id, root_dir)
-            publish_request_ran = True
+            output_rel = _run_publish_request_v0_step(run_id, root_dir)
         except Exception as e:
             log(f"ERROR in publish_request_v0: {e}", "ERROR")
+            raise
+        if output_rel == "skipped":
+            return
+        publish_request_ran = True
+        _run_preview_once()
+
+    def _run_preview_once() -> None:
+        """เรียก preview หนึ่งครั้งเมื่อยังไม่ได้รันและไม่มี step preview ระบุไว้"""
+        nonlocal preview_ran
+        if preview_ran or has_preview:
+            return
+        publish_request_path = root_dir / _publish_request_output_rel(run_id)
+        if not publish_request_path.is_file():
+            log("Preview: skipped (publish_request missing)")
+            return
+        try:
+            _run_preview_step(run_id, root_dir)
+            preview_ran = True
+        except Exception as e:
+            log(f"ERROR in preview: {e}", "ERROR")
             raise
 
     def _mark_post_templates_complete() -> None:
@@ -3834,6 +3923,11 @@ def run_pipeline(pipeline_path: Path, run_id: str):
 
         log(f"[{i}/{len(steps)}] Running: {step_id} (uses: {uses})")
 
+        if uses == "preview" and preview_ran:
+            log(f"[{i}/{len(steps)}] Preview already ran; skipping {step_id}")
+            results[step_id] = {"status": "success", "output": "skipped"}
+            continue
+
         agent_func = AGENTS.get(uses)
         if not agent_func:
             log(f"ERROR: Agent not implemented: {uses}", "ERROR")
@@ -3858,6 +3952,10 @@ def run_pipeline(pipeline_path: Path, run_id: str):
                 _run_publish_request_once()
             if uses == "publish_request.v0":
                 publish_request_ran = True
+                if output_path != "skipped":
+                    _run_preview_once()
+            if uses == "preview":
+                preview_ran = True
             log(f"[{i}/{len(steps)}] ✓ {step_id} completed", "SUCCESS")
             _maybe_run_post_templates(uses, result)
         except Exception as e:
