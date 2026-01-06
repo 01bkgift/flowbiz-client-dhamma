@@ -138,7 +138,6 @@ Closes #<!-- issue number -->
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published
 - [ ] No secrets committed
-- [ ] No external calls added
-
-## Additional Notes
 ## Evidence (optional)
+
+<!-- Provide any screenshots, logs, or other evidence to support your changes. -->
