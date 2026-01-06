@@ -1,0 +1,68 @@
+# Code Ownership & Reviewer Assignment
+
+This file defines code ownership for automatic pull request review assignment.
+
+## Primary Code Owners
+
+| Path | Owners | Responsibility |
+|------|--------|-----------------|
+| `src/automation_core/` | @natbkgift | Core framework, base agents, configuration, logging, queue/scheduler |
+| `src/agents/` | @natbkgift | Agent implementations, Pydantic schemas, business logic |
+| `app/` | @natbkgift | FastAPI web UI, Jinja templates, REST endpoints |
+| `scripts/` | @natbkgift | Orchestrator runners, scheduler, CI/CD helpers |
+| `cli/` | @natbkgift | Command-line interface, Typer commands, Rich output |
+| `orchestrator.py` | @natbkgift | Main pipeline orchestrator, AGENTS mapping |
+| `pipelines/` | @natbkgift | Pipeline YAML definitions, orchestration configs |
+| `docs/` | @natbkgift | Documentation, guides, baseline contracts |
+| `.github/` | @natbkgift | GitHub Actions workflows, templates, governance |
+| `config/` | @natbkgift | Configuration files and schemas |
+| `prompts/` | @natbkgift | AI prompt templates and definitions |
+| `samples/reference/` | @natbkgift | Reference artifacts and test data |
+
+## GitHub Review Policy
+
+- **Minimum approvals required:** 1
+- **Stale review timeout:** 1 day (reset on new commits)
+- **Auto-dismiss stale reviews:** Enabled
+- **Require code owner review:** For files in this CODEOWNERS list
+- **Allow auto-merge:** Yes (after all checks pass)
+
+## Code Owner Responsibilities
+
+1. **Code Quality:** Ensure changes meet ruff/mypy standards
+2. **Testing:** Verify pytest passes with adequate coverage
+3. **Documentation:** Check docs are updated for user-facing changes
+4. **Governance:** Enforce CODEOWNERS, branch protection, security policies
+5. **Backwards Compatibility:** Review for breaking changes (document if necessary)
+6. **Performance:** Assess impact on runtime performance, resource usage
+7. **Security:** Verify no credentials/secrets are committed
+
+## Review Timeline
+
+| Type | Timeline | Notes |
+|------|----------|-------|
+| Documentation only | 24 hours | Fast track |
+| Feature | 48 hours | Requires full testing |
+| Security fix | 24 hours | Expedited |
+| Dependency update | 24 hours | Requires audit report |
+
+## Exception Process
+
+To bypass code owner review (NOT recommended):
+1. Open an issue explaining why bypass is necessary
+2. Get explicit approval from all code owners
+3. Document rationale in PR description
+4. Add "force-merge" label only with maintainer consensus
+
+## Escalation
+
+For disagreements on code review decisions:
+1. Discuss in PR comments (3 business days)
+2. Involve additional code owner if needed
+3. If unresolved, escalate to project lead
+
+---
+
+**Effective Date:** 2025-01-06  
+**Last Reviewed:** 2025-01-06  
+**Next Review:** 2025-04-06 (quarterly)
