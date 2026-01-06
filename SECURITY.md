@@ -2,7 +2,8 @@
 
 ## Reporting a Vulnerability
 
-Please report security issues using GitHub Security Advisories.
+Please report security issues using GitHub Security Advisories via the
+[private vulnerability report](https://github.com/01bkgift/dhamma-channel-automation/security/advisories/new).
 
 ## Supported Versions
 
