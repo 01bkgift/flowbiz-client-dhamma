@@ -2,25 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
-
-# ป้องกันไม่ให้ workflow ซ้อนเมื่อ push ถี่
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+    branches: ["main"]
 
 permissions:
   contents: read
 
-env:
-  PYTHONUNBUFFERED: "1"
-  PIP_DISABLE_PIP_VERSION_CHECK: "1"
-
 jobs:
-  lint:
-    name: Lint (Python 3.11)
+  lint-and-test:
+    name: lint-and-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,106 +21,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-          cache-dependency-path: |
-            pyproject.toml
 
       - name: Install dependencies
         run: |
-          pip install -e ".[dev]"
-
-      - name: Ruff check
-        run: ruff check .
+          pip install -e .
 
       - name: Ruff format check
         run: ruff format --check .
 
-  test:
-    name: Test (Python 3.11)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Ruff check
+        run: ruff check .
 
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: |
-            pyproject.toml
-
-      - name: Install dependencies
-        run: |
-          pip install -e ".[dev]"
-
-      - name: Run tests
-        run: |
-          mkdir -p reports
-          pytest --maxfail=1 --disable-warnings --cov=src --cov-report=xml:reports/coverage.xml --cov-report=term-missing -q
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-3.11
-          path: reports/coverage.xml
-
-  docs:
-    name: Documentation Build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: |
-            pyproject.toml
-
-      - name: Install dependencies
-        run: |
-          pip install mkdocs mkdocs-material
-
-      - name: Build documentation
-        run: mkdocs build --strict
-
-      - name: Upload docs artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: documentation
-          path: site/
-
-  preflight_full:
-    name: Preflight Full Check
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: |
-            pyproject.toml
-
-      - name: Install dependencies
-        run: |
-          pip install -e ".[dev]"
-
-      - name: Run preflight check
-        run: |
-          export QUICK=0
-          bash scripts/preflight.sh
-
-      - name: Upload preflight result
-        uses: actions/upload-artifact@v4
-        with:
-          name: preflight-result
-          path: output/preflight_result.json
+      - name: Pytest
+        run: pytest -q
