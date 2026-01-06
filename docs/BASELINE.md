@@ -511,6 +511,48 @@ Baseline และ Kill Switch มีหน้าที่ต่างกัน:
 
 ---
 
-**เวอร์ชันเอกสาร:** 1.0  
-**อัปเดตล่าสุด:** 2025-12-31  
-**ใช้กับ:** Dhamma Channel Automation v1.x (Client Product Mode)
+## Governance & Code Quality Baseline
+
+**ความเสถียรของ Baseline นี้ได้รับการคุ้มครองโดยนโยบายการปกครอง:**
+
+### Code Review & Testing
+
+- ✅ **PR Requirement:** ทุก PR ต้องผ่านการตรวจสอบโค้ดอย่างน้อย 1 คน
+- ✅ **CI/CD Gate:** Ruff linting + pytest coverage ต้องผ่าน
+- ✅ **Coverage Regression:** Test coverage ต้องเท่ากับหรือสูงกว่าเดิม
+- ✅ **Documentation:** เอกสารต้องอัปเดตให้เป็นปัจจุบัน
+
+### Breaking Changes
+
+- ⚠️ **Breaking Change:** ต้องมี major version bump (semantic versioning)
+- ⚠️ **CHANGELOG Update:** ต้องรายละเอียดผลกระทบ + migration guide
+- ⚠️ **Schema Changes:** กำหนด `schema_version` ใหม่ + deprecation path
+
+### Baseline Drift Detection
+
+**ตรวจสอบ baseline drift ด้วย:**
+
+```bash
+# ทดสอบลักษณะ output format
+pytest tests/test_baseline_contracts.py -v
+
+# เปรียบเทียบกับ samples/reference/
+python -m scripts/validate_baseline.py output/<run_id>/
+```
+
+### Governance Documents
+
+- **SECURITY.md** - นโยบายการรายงานช่องโหว่
+- **CODEOWNERS** - ผู้ดูแลโค้ดสำหรับ code review assignment
+- **GOVERNANCE.md** - กฎการควบคุม PR, release, การเปลี่ยนแปลง
+- **CONTRIBUTING.md** - แนวทางการมีส่วนร่วม
+- **CODE_OF_CONDUCT.md** - สัญญาคุณธรรมชุมชน
+
+ดูเพิ่มเติม: [docs/GOVERNANCE.md](GOVERNANCE.md)
+
+---
+
+**เวอร์ชันเอกสาร:** 1.1  
+**อัปเดตล่าสุด:** 2025-01-06  
+**ใช้กับ:** Dhamma Channel Automation v0.1.x (Client Product Mode)  
+**สถานะ:** APPROVED & ENFORCED (governance audit PR #166)
