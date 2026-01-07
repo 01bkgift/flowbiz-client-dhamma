@@ -250,3 +250,27 @@ def test_max_targets(mock_run_dir, mock_decision_artifact):
     summary = get_summary(mock_run_dir)
     assert len(summary["targets_attempted"]) == 10
     assert summary["targets_attempted"][-1]["name"] == "hook9"
+
+
+def test_invalid_timeout_config(mock_run_dir, mock_decision_artifact):
+    with mock.patch.dict(
+        os.environ,
+        {
+            "NOTIFY_ENABLED": "true",
+            "NOTIFY_WEBHOOKS_JSON": '[{"name": "test", "url": "http://example.com"}]',
+            "NOTIFY_TIMEOUT_SECONDS": "invalid_int",
+        },
+        clear=True,
+    ):
+        with mock.patch("urllib.request.urlopen") as mock_urlopen:
+            mock_response = mock.Mock()
+            mock_response.status = 200
+            mock_response.__enter__ = mock.Mock(return_value=mock_response)
+            mock_response.__exit__ = mock.Mock(return_value=None)
+            mock_urlopen.return_value = mock_response
+
+            # Should not raise ValueError
+            notify_step.run({}, mock_run_dir)
+
+    summary = get_summary(mock_run_dir)
+    assert summary["notification_status"] == "sent"

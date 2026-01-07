@@ -14,6 +14,9 @@ from .redact import redact_url
 # Configure strict logging
 logger = logging.getLogger(__name__)
 
+MAX_TARGETS = 10
+MAX_MESSAGE_LENGTH = 2000
+
 
 def run(step: dict, run_dir: Path) -> str:
     """
@@ -34,7 +37,11 @@ def run(step: dict, run_dir: Path) -> str:
 
     notify_enabled = os.environ.get("NOTIFY_ENABLED", "false").lower() == "true"
     fail_open = os.environ.get("NOTIFY_FAIL_OPEN", "true").lower() == "true"
-    timeout_seconds = int(os.environ.get("NOTIFY_TIMEOUT_SECONDS", "3"))
+    try:
+        timeout_seconds = int(os.environ.get("NOTIFY_TIMEOUT_SECONDS", "3"))
+    except ValueError:
+        logger.warning("Invalid value for NOTIFY_TIMEOUT_SECONDS. Using default 3s.")
+        timeout_seconds = 3
 
     # Initialize Summary State
     summary_status = "skipped"
@@ -76,8 +83,10 @@ def run(step: dict, run_dir: Path) -> str:
             else:
                 seen_names = set()
                 for t in raw_targets:
-                    if len(targets) >= 10:
-                        logger.warning("Max 10 targets reached, ignoring extras")
+                    if len(targets) >= MAX_TARGETS:
+                        logger.warning(
+                            f"Max {MAX_TARGETS} targets reached, ignoring extras"
+                        )
                         break
 
                     if not isinstance(t, dict) or "name" not in t or "url" not in t:
@@ -173,9 +182,9 @@ def run(step: dict, run_dir: Path) -> str:
             f"artifacts: output/{run_id}/artifacts/"
         )
 
-    # Trim to 2000 chars
-    if len(message_body) > 2000:
-        message_body = message_body[:1997] + "..."
+    # Trim to MAX_MESSAGE_LENGTH chars
+    if len(message_body) > MAX_MESSAGE_LENGTH:
+        message_body = message_body[: MAX_MESSAGE_LENGTH - 3] + "..."
 
     # Compute Digest (excluding timestamp)
     message_digest = hashlib.sha256(message_body.encode("utf-8")).hexdigest()

@@ -29,7 +29,7 @@ def redact_url(url: str) -> str:
             last4 = full_str[-4:]
 
         return f"{scheme}://{netloc}/***{last4}"
-    except Exception as e:
+    except Exception:
         # Fallback for completely unparseable junk, just show '***' + last 4
         if len(url) > 4:
             return f"***{url[-4:]}"
