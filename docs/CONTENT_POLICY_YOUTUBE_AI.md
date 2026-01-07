@@ -4,7 +4,7 @@ effective_date: "2026-01-08"
 last_reviewed: "2026-01-08"
 next_review_due: "2026-04-08"
 document_owner: "Repository Owner (natbkgift)"
-backup_owner: "ระบุ backup contact ก่อน deploy"
+backup_owner: "[ชื่อผู้รับผิดชอบสำรอง]"
 language: "th-TH"
 audit_classification: "SOC2-relevant"
 ---
