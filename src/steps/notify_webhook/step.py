@@ -89,21 +89,19 @@ def run(step: dict, run_dir: Path) -> str:
                         )
                         break
 
-                    if (
-                        not isinstance(t, dict) 
-                        or "name" not in t 
-                        or "url" not in t
-                    ):
+                    if not isinstance(t, dict) or "name" not in t or "url" not in t:
                         if "INVALID_CONFIG" not in reason_codes:
                             reason_codes.append("INVALID_CONFIG")
                         continue
 
                     name = t["name"]
                     url = t["url"]
-                    
+
                     # ISO: Validate Raw URL (no Markdown links)
                     if url.startswith("[") or "](" in url:
-                        logger.warning(f"Invalid URL format for target '{name}': Markdown links not allowed.")
+                        logger.warning(
+                            f"Invalid URL format for target '{name}': Markdown links not allowed."
+                        )
                         if "INVALID_CONFIG" not in reason_codes:
                             reason_codes.append("INVALID_CONFIG")
                         continue
@@ -183,10 +181,6 @@ def run(step: dict, run_dir: Path) -> str:
     # Render Template
     # Render Template
     custom_template = os.environ.get("NOTIFY_MESSAGE_TEMPLATE")
-    safe_template_placeholders = {
-        "{run_id}", "{decision}", "{confidence}", "{quality_gate}", 
-        "{reasons}", "{artifacts_path}"
-    }
 
     if custom_template:
         # ISO: Check for forbidden placeholders
@@ -198,6 +192,7 @@ def run(step: dict, run_dir: Path) -> str:
         # So we should validata the allowed keys in the template string.
         # But for now, let's implement the user requirement: "If { other } -> INVALID_CONFIG"
         import re
+
         placeholders = set(re.findall(r"\{([a-zA-Z0-9_]+)\}", custom_template))
         # allowed keys in template_data
         allowed_keys = set(template_data.keys())
@@ -207,16 +202,17 @@ def run(step: dict, run_dir: Path) -> str:
             logger.warning(f"Invalid template placeholders: {invalid_placeholders}")
             # Fallback to default? Or skip?
             # User said "INVALID_CONFIG". We can skip notification if config is invalid.
-            if "INVALID_CONFIG" not in reason_codes: reason_codes.append("INVALID_CONFIG")
+            if "INVALID_CONFIG" not in reason_codes:
+                reason_codes.append("INVALID_CONFIG")
             # If fail_open/skip login below handles return
         else:
-             message_body = custom_template.format(**template_data) # Safe if validated
-    
+            message_body = custom_template.format(**template_data)  # Safe if validated
+
     if "INVALID_CONFIG" in reason_codes:
-         # Write summary and return early logic needed? 
-         # We are deep in function.
-         # Let's break or handle.
-         pass
+        # Write summary and return early logic needed?
+        # We are deep in function.
+        # Let's break or handle.
+        pass
     else:
         if not custom_template:
             message_body = (

@@ -287,7 +287,7 @@ def test_invalid_markdown_url(mock_run_dir):
         clear=True,
     ):
         notify_step.run({}, mock_run_dir)
-        
+
     summary = get_summary(mock_run_dir)
     assert "INVALID_CONFIG" in summary["reason_codes"]
     assert summary["notification_status"] == "skipped"
@@ -302,8 +302,8 @@ def test_invalid_template_placeholders(mock_run_dir, mock_decision_artifact, bas
         },
         clear=True,
     ):
-         notify_step.run({}, mock_run_dir)
-         
+        notify_step.run({}, mock_run_dir)
+
     summary = get_summary(mock_run_dir)
     assert "INVALID_CONFIG" in summary["reason_codes"]
     assert summary["notification_status"] == "skipped"
