@@ -68,6 +68,7 @@ include = ["src*", "cli*", "automation_core*", "agents*"]
 [tool.setuptools.package-dir]
 "automation_core" = "src/automation_core"
 "agents" = "src/agents"
+"steps" = "src/steps"
 
 [tool.setuptools.package-data]
 "agents.personalization" = ["personalization_data.json"]
