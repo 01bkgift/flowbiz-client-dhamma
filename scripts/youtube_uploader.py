@@ -63,9 +63,13 @@ class YouTubeUploader:
 
             # Load existing token (JSON only)
             if self.token_file.exists():
-                creds = Credentials.from_authorized_user_file(
-                    str(self.token_file), SCOPES
-                )
+                try:
+                    creds = Credentials.from_authorized_user_file(
+                        str(self.token_file), SCOPES
+                    )
+                except ValueError:
+                    # หากไฟล์ token เสียหาย ให้ดำเนินการ re-authenticate
+                    creds = None
 
             # Refresh if expired
             if creds and creds.expired and creds.refresh_token:
