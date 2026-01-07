@@ -97,6 +97,11 @@ steps:
     input_from: script_validated.md
     output: format_specs.json
 
+  - id: decision_support
+    uses: decision.support
+    needs: [seo_metadata]
+    output: decision_support_summary.json
+
   - id: multi_channel
     uses: MultiChannelPublish
     needs: [seo_metadata]
