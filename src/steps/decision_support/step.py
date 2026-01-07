@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -147,7 +147,7 @@ def run_decision_support(step: dict[str, Any], run_dir: Path) -> Path:
         final_run_id = "unknown_run_id"
 
     output_model = DecisionSupportOutput(
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        generated_at=datetime.now(UTC).isoformat(),
         run_id=final_run_id,
         decision=decision,
         confidence=confidence,
