@@ -1,8 +1,8 @@
-import pickle
 from pathlib import Path
 from typing import Any
 
 from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
@@ -15,9 +15,9 @@ class YouTubeAnalyticsAdapter:
         "https://www.googleapis.com/auth/youtube.readonly",
     ]
 
-    def __init__(self, credentials_json: Path, token_pickle: Path):
+    def __init__(self, credentials_json: Path, token_json: Path):
         self.credentials_file = credentials_json
-        self.token_file = token_pickle
+        self.token_file = token_json
         self.analytics = None
         self.youtube = None
 
@@ -25,19 +25,16 @@ class YouTubeAnalyticsAdapter:
         """Authenticate with Google APIs"""
         creds = None
 
-        # Load existing token
+        # Load existing token (JSON only)
         if self.token_file.exists():
             try:
-                # Try loading as JSON first (new format)
-                from google.oauth2.credentials import Credentials
-
                 creds = Credentials.from_authorized_user_file(
                     str(self.token_file), self.SCOPES
                 )
-            except Exception:
-                # Fallback to pickle (migration path, but avoiding writes)
-                with open(self.token_file, "rb") as token:
-                    creds = pickle.load(token)
+            except ValueError:
+                # หากไฟล์ token เสียหาย ให้ดำเนินการเหมือนไม่มีไฟล์ token
+                # เพื่อเข้าสู่กระบวนการ re-authentication
+                creds = None
 
         # Refresh if valid but expired
         if creds and creds.expired and creds.refresh_token:
@@ -54,7 +51,7 @@ class YouTubeAnalyticsAdapter:
             )
             creds = flow.run_local_server(port=0)
 
-            # Save token as JSON (Safer)
+            # Save token as JSON
             with open(self.token_file, "w") as token:
                 token.write(creds.to_json())
 

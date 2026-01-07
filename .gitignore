@@ -213,3 +213,18 @@ tmp/
 artifacts/
 .env.local
 .env.*.local
+
+# Project-specific artifacts - PR11 hygiene
+REPO_SNAPSHOT.txt
+reports/*.html
+reports/**/*.html
+
+# YouTube tokens (JSON only, never commit)
+youtube_token.json
+*.pickle
+token.pickle
+
+# OAuth client secrets (never commit)
+client_secret.json
+youtube_client_secret.json
+*_client_secret.json

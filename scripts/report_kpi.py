@@ -58,17 +58,17 @@ def main():
         creds_json = Path(
             os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "client_secret.json")
         )  # Default lookup
-        token_pickle = Path("youtube_token.pickle")
+        token_json = Path("youtube_token.json")
 
         # Check if secrets exist (simple check, adapter does more)
-        if not creds_json.exists() and not token_pickle.exists():
+        if not creds_json.exists() and not token_json.exists():
             print(f"❌ Credentials not found at {creds_json}")
             print(
                 "   Please enable YouTube Analytics API and download client_secret.json"
             )
             return 1
 
-        adapter = YouTubeAnalyticsAdapter(creds_json, token_pickle)
+        adapter = YouTubeAnalyticsAdapter(creds_json, token_json)
 
         try:
             adapter.authenticate()

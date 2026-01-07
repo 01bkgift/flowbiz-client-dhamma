@@ -11,11 +11,11 @@ Setup:
 """
 
 import json
-import pickle
 from pathlib import Path
 
 try:
     from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
@@ -44,7 +44,7 @@ class YouTubeUploader:
 
         # Credentials
         self.credentials_file = Path("youtube_client_secret.json")
-        self.token_file = Path("youtube_token.pickle")
+        self.token_file = Path("youtube_token.json")
 
     def _load_json(self, filename: str) -> dict:
         """Load JSON file"""
@@ -61,10 +61,15 @@ class YouTubeUploader:
         try:
             creds = None
 
-            # Load existing token
+            # Load existing token (JSON only)
             if self.token_file.exists():
-                with open(self.token_file, "rb") as token:
-                    creds = pickle.load(token)
+                try:
+                    creds = Credentials.from_authorized_user_file(
+                        str(self.token_file), SCOPES
+                    )
+                except ValueError:
+                    # หากไฟล์ token เสียหาย ให้ดำเนินการ re-authenticate
+                    creds = None
 
             # Refresh if expired
             if creds and creds.expired and creds.refresh_token:
@@ -86,9 +91,9 @@ class YouTubeUploader:
                 )
                 creds = flow.run_local_server(port=0)
 
-                # Save token
-                with open(self.token_file, "wb") as token:
-                    pickle.dump(creds, token)
+                # Save token as JSON
+                with open(self.token_file, "w") as token:
+                    token.write(creds.to_json())
 
             # Build YouTube service
             self.youtube = build("youtube", "v3", credentials=creds)
