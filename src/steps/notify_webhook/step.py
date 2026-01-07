@@ -339,6 +339,3 @@ def _write_summary(run_id, timestamp, status, targets, digest, reasons, artifact
         with open(path, "w", encoding="utf-8") as f:
             f.write(json.dumps(summary.dict(), indent=2))
     return str(path)
-
-
-
