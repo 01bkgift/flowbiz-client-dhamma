@@ -27,9 +27,14 @@ class YouTubeAnalyticsAdapter:
 
         # Load existing token (JSON only)
         if self.token_file.exists():
-            creds = Credentials.from_authorized_user_file(
-                str(self.token_file), self.SCOPES
-            )
+            try:
+                creds = Credentials.from_authorized_user_file(
+                    str(self.token_file), self.SCOPES
+                )
+            except ValueError:
+                # หากไฟล์ token เสียหาย ให้ดำเนินการเหมือนไม่มีไฟล์ token
+                # เพื่อเข้าสู่กระบวนการ re-authentication
+                creds = None
 
         # Refresh if valid but expired
         if creds and creds.expired and creds.refresh_token:
