@@ -27,10 +27,6 @@ class AnalyticsInput(BaseModel):
         default="30d", 
         description="Date range shortcut (7d, 30d, 90d) or custom range (YYYY-MM-DD:YYYY-MM-DD)"
     )
-    metric_filter: List[str] = Field(
-        default_factory=lambda: ["views", "likes", "subscribersGained"],
-        description="Metrics to retrieve"
-    )
 
 class AnalyticsOutput(BaseModel):
     """Output from Analytics Agent"""

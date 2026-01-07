@@ -28,8 +28,14 @@ class YouTubeAnalyticsAdapter:
         
         # Load existing token
         if self.token_file.exists():
-            with open(self.token_file, "rb") as token:
-                creds = pickle.load(token)
+            try:
+                # Try loading as JSON first (new format)
+                from google.oauth2.credentials import Credentials
+                creds = Credentials.from_authorized_user_file(str(self.token_file), self.SCOPES)
+            except Exception:
+                 # Fallback to pickle (migration path, but avoiding writes)
+                with open(self.token_file, "rb") as token:
+                    creds = pickle.load(token)
                 
         # Refresh if valid but expired
         if creds and creds.expired and creds.refresh_token:
@@ -46,9 +52,9 @@ class YouTubeAnalyticsAdapter:
             )
             creds = flow.run_local_server(port=0)
             
-            # Save token
-            with open(self.token_file, "wb") as token:
-                pickle.dump(creds, token)
+            # Save token as JSON (Safer)
+            with open(self.token_file, "w") as token:
+                token.write(creds.to_json())
                 
         # Build services
         self.analytics = build("youtubeAnalytics", "v2", credentials=creds)
@@ -86,11 +92,11 @@ class YouTubeAnalyticsAdapter:
         return response["items"][0]
         
     def get_recent_videos(self, max_results: int = 10) -> List[Dict[str, Any]]:
-        """Get list of recent videos"""
+        """Get list of recent videos with their stats in a batch request."""
         if not self.youtube:
             raise RuntimeError("Not authenticated")
             
-        response = self.youtube.search().list(
+        search_response = self.youtube.search().list(
             part="snippet",
             forMine=True,
             type="video",
@@ -98,10 +104,14 @@ class YouTubeAnalyticsAdapter:
             maxResults=max_results
         ).execute()
         
-        videos = []
-        for item in response.get("items", []):
-            video_id = item["id"]["videoId"]
-            stats = self.get_video_stats(video_id)
-            videos.append(stats)
+        video_ids = [item["id"]["videoId"] for item in search_response.get("items", [])]
+        
+        if not video_ids:
+            return []
             
-        return videos
+        video_response = self.youtube.videos().list(
+            part="snippet,statistics,contentDetails",
+            id=",".join(video_ids)
+        ).execute()
+        
+        return video_response.get("items", [])

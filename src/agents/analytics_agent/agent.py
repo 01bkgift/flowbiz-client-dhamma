@@ -82,10 +82,15 @@ class AnalyticsAgent(BaseAgent[AnalyticsInput, AnalyticsOutput]):
             snippet = vid["snippet"]
             stats = vid["statistics"]
             
+            published_at_str = snippet.get("publishedAt")
+            if not published_at_str:
+                print(f"⚠️ WARNING: Skipping video {vid.get('id')} due to missing 'publishedAt' field.")
+                continue
+
             top_videos.append(VideoStats(
                 video_id=vid.get("id", ""),
                 title=snippet.get("title", "Unknown"),
-                published_at=datetime.strptime(snippet.get("publishedAt"), "%Y-%m-%dT%H:%M:%SZ"),
+                published_at=datetime.strptime(published_at_str, "%Y-%m-%dT%H:%M:%SZ"),
                 views=int(stats.get("viewCount", 0)),
                 likes=int(stats.get("likeCount", 0)),
                 comments=int(stats.get("commentCount", 0))
