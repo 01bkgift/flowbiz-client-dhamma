@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from contextlib import contextmanager
@@ -6,7 +7,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.automation_core.youtube_upload import upload_video
+from src.automation_core.youtube_upload import (
+    _extract_content_fingerprint,
+    _generate_deterministic_fake_id,
+    _normalize_title,
+    upload_video,
+)
 from src.steps.soft_live_enforce.step import (
     SOFT_LIVE_ENABLED_VAR,
     SOFT_LIVE_FAIL_CLOSED_VAR,
@@ -108,6 +114,121 @@ def mock_google_apis():
             mock_insert.execute.return_value = {"id": "real_upload_id"}
 
             yield mock_videos
+
+
+# =======================
+# NEW TESTS: Content Fingerprinting & Normalization
+# =======================
+
+
+def test_normalization():
+    """Test title normalization (Unicode, whitespace, case)."""
+    assert _normalize_title("  Test   Title  ") == "test title"
+    assert _normalize_title("TeSt") == "test"
+    assert _normalize_title("Test\u2000Title") == "test title"  # Unicode space
+    # NFKC normalization example
+    assert _normalize_title("ﬁle") == "file"  # fi ligature -> fi
+
+
+def test_fake_id_with_fingerprint(tmp_path):
+    """Test that fake ID changes when content changes (collision prevention)."""
+    run_dir = tmp_path / "output" / "run1"
+    artifacts_dir = run_dir / "artifacts"
+    artifacts_dir.mkdir(parents=True)
+
+    # Create metadata.json with content A
+    metadata_a = {"title": "Video Title", "description": "Description A"}
+    (artifacts_dir / "metadata.json").write_text(json.dumps(metadata_a))
+
+    id_a = _generate_deterministic_fake_id("Video Title", "dry_run", run_dir)
+
+    # Change content (same title, different description)
+    metadata_b = {"title": "Video Title", "description": "Description B"}
+    (artifacts_dir / "metadata.json").write_text(json.dumps(metadata_b))
+
+    id_b = _generate_deterministic_fake_id("Video Title", "dry_run", run_dir)
+
+    # IDs should be different (collision prevented)
+    assert id_a != id_b
+    assert id_a.startswith("soft-live-dry-")
+    assert id_b.startswith("soft-live-dry-")
+
+
+def test_fake_id_same_content_same_id(tmp_path):
+    """Test idempotency: same content -> same ID."""
+    run_dir = tmp_path / "output" / "run1"
+    artifacts_dir = run_dir / "artifacts"
+    artifacts_dir.mkdir(parents=True)
+
+    metadata = {"title": "Video Title", "description": "Same Description"}
+    (artifacts_dir / "metadata.json").write_text(json.dumps(metadata))
+
+    id1 = _generate_deterministic_fake_id("Video Title", "dry_run", run_dir)
+    id2 = _generate_deterministic_fake_id("Video Title", "dry_run", run_dir)
+
+    assert id1 == id2
+
+
+def test_fake_id_artifact_priority(tmp_path):
+    """Test fingerprint extraction priority: video_render_summary > metadata > script."""
+    run_dir = tmp_path / "output" / "run1"
+    artifacts_dir = run_dir / "artifacts"
+    artifacts_dir.mkdir(parents=True)
+
+    # Create all three artifacts
+    (artifacts_dir / "video_render_summary.json").write_text(
+        json.dumps({"text_sha256_12": "abc123456789"})
+    )
+    (artifacts_dir / "metadata.json").write_text(
+        json.dumps({"title": "Title", "description": "Desc"})
+    )
+    (artifacts_dir / "script.json").write_text(json.dumps({"content": "script"}))
+
+    # Should use video_render_summary (priority 1)
+    fingerprint = _extract_content_fingerprint(run_dir)
+    assert fingerprint == "abc123456789"
+
+    # Remove video_render_summary, should fall back to metadata
+    (artifacts_dir / "video_render_summary.json").unlink()
+    fingerprint = _extract_content_fingerprint(run_dir)
+    assert fingerprint is not None
+    assert len(fingerprint) == 12  # SHA256[:12]
+
+
+def test_fake_id_missing_artifacts_legacy_fallback(tmp_path):
+    """Test legacy behavior when no artifacts present."""
+    run_dir = tmp_path / "output" / "run1"
+    # Don't create artifacts dir
+
+    id1 = _generate_deterministic_fake_id("Title", "dry_run", run_dir)
+    id2 = _generate_deterministic_fake_id("Title", "dry_run", run_dir)
+
+    # Should still be deterministic (title + mode only)
+    assert id1 == id2
+    assert id1.startswith("soft-live-dry-")
+
+
+def test_fake_id_normalization_matters(tmp_path):
+    """Test that normalization makes different titles produce same ID."""
+    run_dir = tmp_path / "output" / "run1"
+    artifacts_dir = run_dir / "artifacts"
+    artifacts_dir.mkdir(parents=True)
+
+    (artifacts_dir / "metadata.json").write_text(
+        json.dumps({"title": "Test", "description": "Desc"})
+    )
+
+    id1 = _generate_deterministic_fake_id("  Test  ", "dry_run", run_dir)
+    id2 = _generate_deterministic_fake_id("TEST", "dry_run", run_dir)
+    id3 = _generate_deterministic_fake_id("test", "dry_run", run_dir)
+
+    # All should produce same ID due to normalization
+    assert id1 == id2 == id3
+
+
+# =======================
+# EXISTING TESTS (unchanged)
+# =======================
 
 
 def test_upload_video_enforces_dry_run_deterministic():

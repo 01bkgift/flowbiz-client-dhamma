@@ -8,18 +8,123 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import unicodedata
 from pathlib import Path
 
 MOCK_VIDEO_ID_DRY_RUN = "soft-live-dry-run-video-id"
 MOCK_VIDEO_ID_FALLBACK = "soft-live-fallback-dry-run-id"
 
 
-def _generate_deterministic_fake_id(title: str, mode: str) -> str:
-    """Generate a deterministic fake video ID based on title and mode."""
-    # Create a stable digest
-    payload = f"{title}|{mode}".encode()
-    digest = hashlib.sha256(payload).hexdigest()[:16]
+def _normalize_title(title: str) -> str:
+    """Normalize title for deterministic hashing.
+
+    - Unicode NFKC normalization
+    - Strip leading/trailing whitespace
+    - Collapse internal whitespace to single space
+    - Lowercase
+    """
+    # Unicode normalization
+    normalized = unicodedata.normalize("NFKC", title)
+    # Strip and collapse whitespace
+    normalized = " ".join(normalized.split())
+    # Lowercase
+    return normalized.lower()
+
+
+def _extract_content_fingerprint(run_dir: Path | None) -> str | None:
+    """Extract content fingerprint from existing artifacts.
+
+    Priority order:
+    1. video_render_summary.json -> text_sha256_12
+    2. metadata.json -> hash(title + description)
+    3. script.json -> hash(entire script)
+
+    Returns None if all artifacts missing (fallback to legacy behavior).
+    """
+    if run_dir is None:
+        return None
+
+    artifacts_dir = run_dir / "artifacts"
+    if not artifacts_dir.exists():
+        return None
+
+    # Priority 1: video_render_summary.json
+    render_summary = artifacts_dir / "video_render_summary.json"
+    if render_summary.exists():
+        try:
+            with open(render_summary, encoding="utf-8") as f:
+                data = json.load(f)
+                if "text_sha256_12" in data:
+                    return data["text_sha256_12"]
+        except Exception:
+            pass
+
+    # Priority 2: metadata.json
+    metadata_file = artifacts_dir / "metadata.json"
+    if metadata_file.exists():
+        try:
+            with open(metadata_file, encoding="utf-8") as f:
+                data = json.load(f)
+                # Hash title + description for content identity
+                title = data.get("title", "")
+                desc = data.get("description", "")
+                if title or desc:
+                    content = f"{title}|{desc}"
+                    return hashlib.sha256(content.encode()).hexdigest()[:12]
+        except Exception:
+            pass
+
+    # Priority 3: script.json
+    script_file = artifacts_dir / "script.json"
+    if script_file.exists():
+        try:
+            with open(script_file, encoding="utf-8") as f:
+                data = json.load(f)
+                # Hash entire script content
+                script_str = json.dumps(data, sort_keys=True)
+                return hashlib.sha256(script_str.encode()).hexdigest()[:12]
+        except Exception:
+            pass
+
+    return None
+
+
+def _generate_deterministic_fake_id(
+    title: str, mode: str, run_dir: Path | None = None
+) -> str:
+    """Generate a collision-safe deterministic fake video ID.
+
+    Uses content fingerprinting to prevent collisions when the same title
+    is reused with different content.
+
+    Args:
+        title: Video title
+        mode: Soft-Live mode (e.g., 'dry_run', 'unlisted')
+        run_dir: Optional path to run directory for artifact access
+
+    Returns:
+        Fake video ID in format: soft-live-dry-{16-char-hex}
+    """
+    # Normalize title for consistent hashing
+    normalized_title = _normalize_title(title)
+
+    # Extract content fingerprint from artifacts (collision prevention)
+    fingerprint = _extract_content_fingerprint(run_dir)
+
+    # Build canonical payload
+    payload = {
+        "title": normalized_title,
+        "mode": mode,
+        "fingerprint": fingerprint,
+    }
+
+    # Deterministic JSON serialization
+    payload_str = json.dumps(payload, sort_keys=True)
+
+    # Generate stable digest
+    digest = hashlib.sha256(payload_str.encode()).hexdigest()[:16]
     return f"soft-live-dry-{digest}"
 
 
@@ -128,7 +233,14 @@ def upload_video(
         if soft_live_mode == "dry_run":
             print("[Soft-Live] Enforcing dry_run. Upload skipped.")
             print(f"[Soft-Live] Mocking upload for: {title} ({privacy_status})")
-            return _generate_deterministic_fake_id(title, "dry_run")
+            # Derive run_dir from mp4_path for content fingerprinting
+            # Pattern: output/<run_id>/artifacts/video.mp4
+            run_dir = None
+            if "artifacts" in mp4_path.parts:
+                artifacts_idx = mp4_path.parts.index("artifacts")
+                if artifacts_idx > 0:
+                    run_dir = Path(*mp4_path.parts[:artifacts_idx])
+            return _generate_deterministic_fake_id(title, "dry_run", run_dir)
 
         # Map modes to severity: private=0, unlisted=1, public=2
         severity_map = {"private": 0, "unlisted": 1, "public": 2}
