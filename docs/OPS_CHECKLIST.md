@@ -188,7 +188,7 @@ echo "Export complete: ${EXPORT_DIR}"
 | Action | Command |
 |--------|---------|
 | Check container | `docker compose --env-file config/flowbiz_port.env ps` |
-| Check health | `curl http://127.0.0.1:3007/healthz` |
+| Check health | `source config/flowbiz_port.env && curl "http://127.0.0.1:${FLOWBIZ_ALLOCATED_PORT}/healthz"` |
 | View logs | `docker compose --env-file config/flowbiz_port.env logs -f` |
 | Check disk | `df -h /opt` |
 | Check nginx | `sudo nginx -t && sudo systemctl status nginx` |
