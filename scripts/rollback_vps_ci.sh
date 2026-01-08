@@ -58,9 +58,24 @@ ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" << EOF
     echo "Restarting services..."
     docker compose --env-file config/flowbiz_port.env up -d --remove-orphans
     
-    echo "Health check..."
+    echo "Waiting for health check (max 30s)..."
     PORT=\$(grep '^FLOWBIZ_ALLOCATED_PORT=' config/flowbiz_port.env | cut -d'=' -f2)
-    curl -fsS "http://127.0.0.1:\$PORT/healthz"
+    HEALTH_URL="http://127.0.0.1:\$PORT/healthz"
+    SUCCESS=0
+    for i in {1..15}; do
+        if curl -fsS "\$HEALTH_URL" > /dev/null; then
+            echo "Health check passed!"
+            SUCCESS=1
+            break
+        fi
+        echo "Waiting... (\$i/15)"
+        sleep 2
+    done
+    
+    if [ \$SUCCESS -ne 1 ]; then
+        echo "ERROR: Health check failed after 30s."
+        exit 1
+    fi
 EOF
 
 FINISHED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
