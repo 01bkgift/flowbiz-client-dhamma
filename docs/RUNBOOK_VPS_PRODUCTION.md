@@ -121,7 +121,7 @@
   sudo apt install jq
   ```
 
-- [ ] Python 3.11+ (only if running pipelines locally)
+- [ ] Python 3.11+ (required if running pipelines manually on VPS)
 
   ```bash
   python3 --version
