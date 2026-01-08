@@ -134,7 +134,7 @@ docker compose --env-file config/flowbiz_port.env logs \
   --since 2160h > audit_container.log
 
 # Nginx logs
-sudo cp /var/log/nginx/dhamma-access.log* audit/
+sudo rsync -a /var/log/nginx/dhamma-access.log* /path/to/audit_destination/
 ```
 
 ---
