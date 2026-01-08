@@ -57,6 +57,20 @@ ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" << EOF
         exit 1
     fi
     git checkout "$TARGET_SHA"
+    git checkout "$TARGET_SHA"
+
+    if [ "${DRY_RUN:-false}" = "true" ]; then
+        echo "DRY RUN MODE: Skipping git reset --hard and Docker Compose"
+        echo "Validating environment configuration (Dry Run)..."
+        if [ ! -f config/flowbiz_port.env ]; then
+             echo "WARNING: config/flowbiz_port.env missing (this would fail in production)"
+        else
+             echo "Config file found."
+        fi
+        echo "--- DRY RUN COMPLETE ---"
+        exit 0
+    fi
+
     git reset --hard "$TARGET_SHA"
     
     echo "Validating environment configuration..."
@@ -115,7 +129,8 @@ cat <<EOF > "$REPORT_FILE"
   "actor": "$GITHUB_ACTOR",
   "started_at": "$STARTED_AT",
   "finished_at": "$FINISHED_AT",
-  "vps_host": "$VPS_HOST"
+  "vps_host": "$VPS_HOST",
+  "dry_run": "${DRY_RUN:-false}"
 }
 EOF
 

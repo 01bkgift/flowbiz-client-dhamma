@@ -17,6 +17,11 @@ on:
       rollback_sha:
         description: 'SHA to rollback to (required if action is rollback)'
         required: false
+      dry_run:
+        description: 'Dry Run (Verify connectivity only)'
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: production-deploy
@@ -56,6 +61,7 @@ jobs:
           TARGET_SHA: ${{ steps.resolve_sha.outputs.target_sha }}
           ROLLBACK_SHA: ${{ github.event.inputs.rollback_sha }}
           GITHUB_ACTOR: ${{ github.actor }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
           if [ "${ACTION}" = "deploy" ]; then
             bash scripts/deploy_vps_ci.sh
