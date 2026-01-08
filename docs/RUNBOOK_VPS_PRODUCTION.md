@@ -413,7 +413,7 @@ du -sh /opt/dhamma-channel-automation/output/*
 
 # Clean old outputs (CAUTION: audit implications)
 # ลบเฉพาะหลังจาก backup/archive แล้วเท่านั้น
-rm -rf /opt/dhamma-channel-automation/output/<old_run_id>
+cd /opt/dhamma-channel-automation/output && rm -rf ./<old_run_id>
 ```
 
 ### Nginx Broken
