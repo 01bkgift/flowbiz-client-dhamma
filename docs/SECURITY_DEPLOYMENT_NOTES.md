@@ -161,7 +161,6 @@ cat /etc/logrotate.d/nginx
 Docker logs rotation:
 
 ```json
-// /etc/docker/daemon.json
 {
   "log-driver": "json-file",
   "log-opts": {
