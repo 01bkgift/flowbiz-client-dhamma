@@ -3721,6 +3721,14 @@ def agent_publish(step, run_dir: Path):
     return out
 
 
+
+def agent_soft_live_enforce(step: dict, run_dir: Path):
+    """Adapter for soft_live.enforce step"""
+    run_id = run_dir.name
+    _summary, path = run_soft_live_enforce(run_id, run_dir.parent.parent)
+    return path
+
+
 # ========== AGENT REGISTRY ==========
 
 AGENTS = {
@@ -3765,7 +3773,7 @@ AGENTS = {
     "decision.support": run_decision_support,
     "approval.gate": run_approval_gate,
     "notify.webhook": notify_step.run,
-    "soft_live.enforce": run_soft_live_enforce,
+    "soft_live.enforce": agent_soft_live_enforce,
 }
 
 

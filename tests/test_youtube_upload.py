@@ -25,8 +25,11 @@ from automation_core.youtube_upload import (
 
 
 @pytest.fixture
-def mock_google_api():
+def mock_google_api(monkeypatch):
     """Fixture สำหรับ mock Google API modules ที่ถูก lazy-import"""
+    # Disable Soft-Live by default for unit tests of the core upload logic
+    monkeypatch.setenv("SOFT_LIVE_ENABLED", "false")
+
     # Create mock modules
     mock_google = Mock()
     mock_google_auth = Mock()
@@ -566,6 +569,9 @@ class TestUploadVideoDepsMissing:
 
     def test_upload_video_raises_when_google_deps_missing(self, tmp_path, monkeypatch):
         """ทดสอบว่า upload_video raise YoutubeDepsMissingError เมื่อขาด Google API libs"""
+        # Disable Soft-Live
+        monkeypatch.setenv("SOFT_LIVE_ENABLED", "false")
+
         video_file = tmp_path / "test.mp4"
         video_file.write_bytes(b"fake video")
 
