@@ -58,7 +58,7 @@ def _extract_content_fingerprint(run_dir: Path | None) -> str | None:
                 data = json.load(f)
                 if "text_sha256_12" in data:
                     return data["text_sha256_12"]
-        except Exception:
+        except (json.JSONDecodeError, KeyError):
             pass
 
     # Priority 2: metadata.json
