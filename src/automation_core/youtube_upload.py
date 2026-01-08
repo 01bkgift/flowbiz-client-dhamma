@@ -85,7 +85,7 @@ def _extract_content_fingerprint(run_dir: Path | None) -> str | None:
                 # Hash entire script content
                 script_str = json.dumps(data, sort_keys=True)
                 return hashlib.sha256(script_str.encode()).hexdigest()[:12]
-        except Exception:
+        except (json.JSONDecodeError, OSError):
             pass
 
     return None
