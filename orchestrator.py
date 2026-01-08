@@ -42,6 +42,7 @@ from steps.approval_gate import (  # noqa: E402
 )
 from steps.decision_support import run_decision_support  # noqa: E402
 from steps.notify_webhook import step as notify_step  # noqa: E402
+from steps.soft_live_enforce import run_soft_live_enforce  # noqa: E402
 
 POST_TEMPLATES_ALIASES = {"post_templates", "post.templates"}
 
@@ -3764,6 +3765,7 @@ AGENTS = {
     "decision.support": run_decision_support,
     "approval.gate": run_approval_gate,
     "notify.webhook": notify_step.run,
+    "soft_live.enforce": run_soft_live_enforce,
 }
 
 

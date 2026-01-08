@@ -102,6 +102,37 @@ def upload_video(
             + ", ".join(sorted(allowed_privacy_statuses))
         )
 
+    # --- SOFT-LIVE ENFORCEMENT START ---
+    soft_live_enabled = os.environ.get("SOFT_LIVE_ENABLED", "true").strip().lower() == "true"
+
+    if soft_live_enabled:
+        soft_live_mode = os.environ.get("SOFT_LIVE_YOUTUBE_MODE", "dry_run").strip().lower()
+        print(f"[Soft-Live] Soft-Live Enabled. Mode: {soft_live_mode}")
+
+        if soft_live_mode == "dry_run":
+            print("[Soft-Live] Enforcing dry_run. Upload skipped.")
+            print(f"[Soft-Live] Mocking upload for: {title} ({privacy_status})")
+            return "soft-live-dry-run-video-id"
+
+        # Map modes to severity: private=0, unlisted=1, public=2
+        severity_map = {"private": 0, "unlisted": 1, "public": 2}
+
+        # Validate configured mode
+        if soft_live_mode not in severity_map:
+             # Default to dry_run logic if invalid config in Soft-Live
+            print(f"[Soft-Live] Invalid mode '{soft_live_mode}'. Fallback to dry_run.")
+            return "soft-live-fallback-dry-run-id"
+
+        current_severity = severity_map.get(privacy_status, 2) # default to public if unknown
+        enforced_severity = severity_map[soft_live_mode]
+
+        if current_severity > enforced_severity:
+            print(f"[Soft-Live] OVERRIDE: {privacy_status} -> {soft_live_mode}")
+            privacy_status = soft_live_mode
+        else:
+            print(f"[Soft-Live] Privacy status '{privacy_status}' is compliant with '{soft_live_mode}'.")
+    # --- SOFT-LIVE ENFORCEMENT END ---
+
     try:
         from google.auth.exceptions import RefreshError
         from google.auth.transport.requests import Request

@@ -10,13 +10,18 @@ steps:
     needs: [decision_support]
     output: approval_gate_summary.json
 
+  - id: soft_live
+    uses: soft_live.enforce
+    needs: [approval_gate]
+    output: soft_live_summary.json
+
   - id: notify_webhook
     uses: notify.webhook
-    needs: [approval_gate]
+    needs: [soft_live]
     output: notify_summary.json
 
   - id: youtube_upload
     uses: youtube.upload
-    needs: [approval_gate]
+    needs: [soft_live]
     config:
       dry_run: true

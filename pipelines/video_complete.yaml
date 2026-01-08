@@ -107,14 +107,19 @@ steps:
     needs: [decision_support]
     output: approval_gate_summary.json
 
+  - id: soft_live
+    uses: soft_live.enforce
+    needs: [approval_gate]
+    output: soft_live_summary.json
+
   - id: notify_webhook
     uses: notify.webhook
-    needs: [approval_gate]
+    needs: [soft_live]
     output: notify_summary.json
 
   - id: multi_channel
     uses: MultiChannelPublish
-    needs: [seo_metadata, approval_gate]
+    needs: [seo_metadata, soft_live]
     input_from: metadata.json
     output: multi_channel.json
 
