@@ -337,7 +337,9 @@ EOF
 ### Fake Video ID Format
 
 - Pattern: `fake-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-- Collision-safe (UUID v4)
+- Derived from normalized content fingerprint
+- Stable across re-runs for the same content + mode
+- Deterministic fake video ID
 
 ---
 
