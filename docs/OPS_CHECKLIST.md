@@ -174,7 +174,7 @@ git log --since="30 days ago" --format="%H|%ai|%an|%s" > "${EXPORT_DIR}/git_hist
 docker compose --env-file config/flowbiz_port.env logs --since 720h > "${EXPORT_DIR}/container.log"
 
 # Copy approval artifacts
-find output -name "approval_gate_summary.json" -mtime -30 -exec cp {} "${EXPORT_DIR}/" \;
+find output -name "approval_gate_summary.json" -mtime -30 -exec cp --parents {} "${EXPORT_DIR}/" \;
 
 echo "Export complete: ${EXPORT_DIR}"
 ```
