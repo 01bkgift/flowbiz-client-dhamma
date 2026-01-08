@@ -2723,7 +2723,7 @@ def _youtube_upload_is_enabled(step_cfg: dict) -> bool:
         if not isinstance(dry_run, bool):
             raise TypeError("config.dry_run must be a boolean")
         if dry_run:
-            # If dry_run is true in config, we still enable the step 
+            # If dry_run is true in config, we still enable the step
             # so it can perform a Soft-Live dry run and return a fake ID.
             return True
     return os.environ.get("YOUTUBE_UPLOAD_ENABLED", "false").strip().lower() == "true"
@@ -4031,9 +4031,7 @@ def run_pipeline(pipeline_path: Path, run_id: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="FlowBiz Client Dhamma - Orchestrator"
-    )
+    parser = argparse.ArgumentParser(description="FlowBiz Client Dhamma - Orchestrator")
     parser.add_argument("--pipeline", required=True, help="Path to YAML pipeline file")
     parser.add_argument("--run-id", default=None, help="Run ID (default: timestamp)")
     parser.add_argument(
