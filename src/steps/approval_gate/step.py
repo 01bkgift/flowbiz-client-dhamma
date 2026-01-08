@@ -161,7 +161,9 @@ def run_approval_gate(
             status = StatusEnum.REJECTED
             decision_source = DecisionSourceEnum.FAILSAFE
             reason_codes = ["FAILSAFE_REJECT", "INVALID_TIMESTAMP"]
-            raise ApprovalRejectedError("Invalid opened_at timestamp in artifact") from None
+            raise ApprovalRejectedError(
+                "Invalid opened_at timestamp in artifact"
+            ) from None
 
         eval_count = existing_artifact.evaluation_count + 1
     else:

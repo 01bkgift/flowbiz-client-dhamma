@@ -35,12 +35,12 @@ from automation_core.adapters import (  # noqa: E402
 )
 from automation_core.adapters.noop import NoopAdapter  # noqa: E402
 from automation_core.utils.env import parse_pipeline_enabled  # noqa: E402
-from steps.decision_support import run_decision_support  # noqa: E402
 from steps.approval_gate import (  # noqa: E402
     ApprovalPendingHold,
     ApprovalRejectedError,
     run_approval_gate,
 )
+from steps.decision_support import run_decision_support  # noqa: E402
 from steps.notify_webhook import step as notify_step  # noqa: E402
 
 POST_TEMPLATES_ALIASES = {"post_templates", "post.templates"}
@@ -3955,12 +3955,11 @@ def run_pipeline(pipeline_path: Path, run_id: str):
             # Hard stop for rejection
             log(f"⛔ Pipeline REJECTED at {step_id}: {e}", "ERROR")
             results[step_id] = {"status": "rejected", "reason": str(e)}
-            failed_steps += 1
             break
 
         try:
             # Continue with normal success processing assuming result is valid
-            pass # result already set above
+            pass  # result already set above
             output_path = result
             planned_paths = None
             if isinstance(result, PlannedArtifacts):
