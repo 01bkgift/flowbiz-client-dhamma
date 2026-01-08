@@ -89,7 +89,7 @@ source "${PORT_ENV_FILE}"
 HEALTH_URL="http://127.0.0.1:${FLOWBIZ_ALLOCATED_PORT}/healthz"
 echo "  URL: ${HEALTH_URL}"
 
-if HEALTH_RESPONSE=$(curl -fsS "${HEALTH_URL}" 2>/dev/null); then
+if HEALTH_RESPONSE=$(curl -fsS "${HEALTH_URL}"); then
     echo "  ✓ Health check passed"
     echo "  Response: ${HEALTH_RESPONSE}"
 else
