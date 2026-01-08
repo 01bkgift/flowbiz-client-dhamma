@@ -11,7 +11,9 @@ DEFAULT_YOUTUBE_MODE = "dry_run"
 VALID_YOUTUBE_MODES = {"dry_run", "unlisted", "private"}
 
 
-def run_soft_live_enforce(run_id: str, base_dir: Path | None = None) -> tuple[dict, Path]:
+def run_soft_live_enforce(
+    run_id: str, base_dir: Path | None = None
+) -> tuple[dict, Path]:
     """
     Enforces Soft-Live mode by checking environment variables and generating a summary artifact.
 
@@ -29,9 +31,15 @@ def run_soft_live_enforce(run_id: str, base_dir: Path | None = None) -> tuple[di
     output_dir.mkdir(parents=True, exist_ok=True)
     summary_path = output_dir / "soft_live_summary.json"
 
-    env_enabled = os.environ.get(SOFT_LIVE_ENABLED_VAR, "true").strip().lower() == "true"
-    env_mode = os.environ.get(SOFT_LIVE_YOUTUBE_MODE_VAR, DEFAULT_YOUTUBE_MODE).strip().lower()
-    env_fail_closed = os.environ.get(SOFT_LIVE_FAIL_CLOSED_VAR, "true").strip().lower() == "true"
+    env_enabled = (
+        os.environ.get(SOFT_LIVE_ENABLED_VAR, "true").strip().lower() == "true"
+    )
+    env_mode = (
+        os.environ.get(SOFT_LIVE_YOUTUBE_MODE_VAR, DEFAULT_YOUTUBE_MODE).strip().lower()
+    )
+    env_fail_closed = (
+        os.environ.get(SOFT_LIVE_FAIL_CLOSED_VAR, "true").strip().lower() == "true"
+    )
 
     timestamp_utc = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
@@ -56,7 +64,7 @@ def run_soft_live_enforce(run_id: str, base_dir: Path | None = None) -> tuple[di
             timestamp_utc=timestamp_utc,
             soft_live_status="enabled",
             enforced_mode=enforced_mode,
-            effective_privacy_status=enforced_mode, # Since applied directly if valid
+            effective_privacy_status=enforced_mode,  # Since applied directly if valid
             reason_codes=[],
         )
         _write_summary(summary_path, summary)

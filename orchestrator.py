@@ -3721,7 +3721,6 @@ def agent_publish(step, run_dir: Path):
     return out
 
 
-
 def agent_soft_live_enforce(step: dict, run_dir: Path):
     """Adapter for soft_live.enforce step"""
     run_id = run_dir.name

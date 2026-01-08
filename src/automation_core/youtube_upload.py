@@ -115,10 +115,14 @@ def upload_video(
         )
 
     # --- SOFT-LIVE ENFORCEMENT START ---
-    soft_live_enabled = os.environ.get("SOFT_LIVE_ENABLED", "true").strip().lower() == "true"
+    soft_live_enabled = (
+        os.environ.get("SOFT_LIVE_ENABLED", "true").strip().lower() == "true"
+    )
 
     if soft_live_enabled:
-        soft_live_mode = os.environ.get("SOFT_LIVE_YOUTUBE_MODE", "dry_run").strip().lower()
+        soft_live_mode = (
+            os.environ.get("SOFT_LIVE_YOUTUBE_MODE", "dry_run").strip().lower()
+        )
         print(f"[Soft-Live] Soft-Live Enabled. Mode: {soft_live_mode}")
 
         if soft_live_mode == "dry_run":
@@ -131,24 +135,30 @@ def upload_video(
 
         # Validate configured mode - STRICT: public is NOT allowed for Soft-Live
         if soft_live_mode == "public":
-             print("[Soft-Live] SAFETY VIOLATION: 'public' is not allowed in Soft-Live mode!")
-             # If fail_closed is True (default logic of caller), this is critical.
-             # Here we enforce fallback to dry_run as immediate safety net if code reached here.
-             return MOCK_VIDEO_ID_FALLBACK
+            print(
+                "[Soft-Live] SAFETY VIOLATION: 'public' is not allowed in Soft-Live mode!"
+            )
+            # If fail_closed is True (default logic of caller), this is critical.
+            # Here we enforce fallback to dry_run as immediate safety net if code reached here.
+            return MOCK_VIDEO_ID_FALLBACK
 
         if soft_live_mode not in severity_map:
-             # Default to dry_run logic if invalid config in Soft-Live
+            # Default to dry_run logic if invalid config in Soft-Live
             print(f"[Soft-Live] Invalid mode '{soft_live_mode}'. Fallback to dry_run.")
             return MOCK_VIDEO_ID_FALLBACK
 
-        current_severity = severity_map.get(privacy_status, 2) # default to public if unknown
+        current_severity = severity_map.get(
+            privacy_status, 2
+        )  # default to public if unknown
         enforced_severity = severity_map[soft_live_mode]
 
         if current_severity > enforced_severity:
             print(f"[Soft-Live] OVERRIDE: {privacy_status} -> {soft_live_mode}")
             privacy_status = soft_live_mode
         else:
-            print(f"[Soft-Live] Privacy status '{privacy_status}' is compliant with '{soft_live_mode}'.")
+            print(
+                f"[Soft-Live] Privacy status '{privacy_status}' is compliant with '{soft_live_mode}'."
+            )
     # --- SOFT-LIVE ENFORCEMENT END ---
 
     try:

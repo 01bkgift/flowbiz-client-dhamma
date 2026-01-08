@@ -43,10 +43,9 @@ def test_soft_live_disabled(tmp_run_dir):
 
 def test_soft_live_enabled_valid_mode(tmp_run_dir):
     base_dir, run_id = tmp_run_dir
-    with env_vars({
-        SOFT_LIVE_ENABLED_VAR: "true",
-        SOFT_LIVE_YOUTUBE_MODE_VAR: "unlisted"
-    }):
+    with env_vars(
+        {SOFT_LIVE_ENABLED_VAR: "true", SOFT_LIVE_YOUTUBE_MODE_VAR: "unlisted"}
+    ):
         summary, _ = run_soft_live_enforce(run_id, base_dir=base_dir)
         assert summary["soft_live_status"] == "enabled"
         assert summary["enforced_mode"] == "unlisted"
@@ -55,22 +54,26 @@ def test_soft_live_enabled_valid_mode(tmp_run_dir):
 
 def test_soft_live_enabled_invalid_mode_fail_closed(tmp_run_dir):
     base_dir, run_id = tmp_run_dir
-    with env_vars({
-        SOFT_LIVE_ENABLED_VAR: "true",
-        SOFT_LIVE_YOUTUBE_MODE_VAR: "invalid_mode",
-        SOFT_LIVE_FAIL_CLOSED_VAR: "true"
-    }):
+    with env_vars(
+        {
+            SOFT_LIVE_ENABLED_VAR: "true",
+            SOFT_LIVE_YOUTUBE_MODE_VAR: "invalid_mode",
+            SOFT_LIVE_FAIL_CLOSED_VAR: "true",
+        }
+    ):
         with pytest.raises(ValueError, match="Invalid SOFT_LIVE_YOUTUBE_MODE"):
             run_soft_live_enforce(run_id, base_dir=base_dir)
 
 
 def test_soft_live_enabled_invalid_mode_fail_open(tmp_run_dir):
     base_dir, run_id = tmp_run_dir
-    with env_vars({
-        SOFT_LIVE_ENABLED_VAR: "true",
-        SOFT_LIVE_YOUTUBE_MODE_VAR: "invalid_mode",
-        SOFT_LIVE_FAIL_CLOSED_VAR: "false"
-    }):
+    with env_vars(
+        {
+            SOFT_LIVE_ENABLED_VAR: "true",
+            SOFT_LIVE_YOUTUBE_MODE_VAR: "invalid_mode",
+            SOFT_LIVE_FAIL_CLOSED_VAR: "false",
+        }
+    ):
         summary, _ = run_soft_live_enforce(run_id, base_dir=base_dir)
         assert summary["soft_live_status"] == "enabled"
         assert summary["enforced_mode"] == "dry_run"
@@ -82,14 +85,17 @@ def test_soft_live_enabled_invalid_mode_fail_open(tmp_run_dir):
 def mock_google_apis():
     with patch("src.automation_core.youtube_upload._require_env") as mock_env:
         mock_env.return_value = "dummy"
-        with patch.dict("sys.modules", {
-            "google.auth.exceptions": MagicMock(),
-            "google.auth.transport.requests": MagicMock(),
-            "google.oauth2.credentials": MagicMock(),
-            "googleapiclient.discovery": MagicMock(),
-            "googleapiclient.errors": MagicMock(),
-            "googleapiclient.http": MagicMock(),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "google.auth.exceptions": MagicMock(),
+                "google.auth.transport.requests": MagicMock(),
+                "google.oauth2.credentials": MagicMock(),
+                "googleapiclient.discovery": MagicMock(),
+                "googleapiclient.errors": MagicMock(),
+                "googleapiclient.http": MagicMock(),
+            },
+        ):
             mock_build = MagicMock()
             mock_youtube = MagicMock()
             mock_build.return_value = mock_youtube
@@ -106,20 +112,20 @@ def mock_google_apis():
 
 def test_upload_video_enforces_dry_run_deterministic():
     # Test that upload_video returns deterministic ID based on title+mode
-    with env_vars({
-        SOFT_LIVE_ENABLED_VAR: "true",
-        SOFT_LIVE_YOUTUBE_MODE_VAR: "dry_run"
-    }):
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("pathlib.Path.is_file", return_value=True):
-
+    with env_vars(
+        {SOFT_LIVE_ENABLED_VAR: "true", SOFT_LIVE_YOUTUBE_MODE_VAR: "dry_run"}
+    ):
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.is_file", return_value=True),
+        ):
             # Run 1
             vid1 = upload_video(
                 mp4_path=Path("dummy.mp4"),
                 title="test_title_A",
                 description="desc",
                 tags=[],
-                privacy_status="public"
+                privacy_status="public",
             )
 
             # Run 2 (Same title)
@@ -128,7 +134,7 @@ def test_upload_video_enforces_dry_run_deterministic():
                 title="test_title_A",
                 description="desc",
                 tags=[],
-                privacy_status="public"
+                privacy_status="public",
             )
 
             # Run 3 (Different title)
@@ -137,7 +143,7 @@ def test_upload_video_enforces_dry_run_deterministic():
                 title="test_title_B",
                 description="desc",
                 tags=[],
-                privacy_status="public"
+                privacy_status="public",
             )
 
             assert vid1 == vid2
@@ -152,38 +158,41 @@ def test_soft_live_rejects_public_mode_fail_closed():
     # Actually, current impl returns FALLBACK ID.
     # Let's verify it returns default FALLBACK ID and prints violation.
 
-    with env_vars({
-        SOFT_LIVE_ENABLED_VAR: "true",
-        SOFT_LIVE_YOUTUBE_MODE_VAR: "public" # ILLEGAL CONFIG
-    }):
-         with patch("pathlib.Path.exists", return_value=True), \
-             patch("pathlib.Path.is_file", return_value=True):
-
+    with env_vars(
+        {
+            SOFT_LIVE_ENABLED_VAR: "true",
+            SOFT_LIVE_YOUTUBE_MODE_VAR: "public",  # ILLEGAL CONFIG
+        }
+    ):
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.is_file", return_value=True),
+        ):
             vid = upload_video(
                 mp4_path=Path("dummy.mp4"),
                 title="test",
                 description="desc",
                 tags=[],
-                privacy_status="public"
+                privacy_status="public",
             )
 
             assert vid == "soft-live-fallback-dry-run-id"
 
 
 def test_upload_video_overrides_public_to_unlisted(mock_google_apis):
-    with env_vars({
-        SOFT_LIVE_ENABLED_VAR: "true",
-        SOFT_LIVE_YOUTUBE_MODE_VAR: "unlisted"
-    }):
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("pathlib.Path.is_file", return_value=True):
-
+    with env_vars(
+        {SOFT_LIVE_ENABLED_VAR: "true", SOFT_LIVE_YOUTUBE_MODE_VAR: "unlisted"}
+    ):
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.is_file", return_value=True),
+        ):
             upload_video(
                 mp4_path=Path("video.mp4"),
                 title="test",
                 description="desc",
                 tags=[],
-                privacy_status="public" # Request PUBLIC
+                privacy_status="public",  # Request PUBLIC
             )
 
             # Verify insert called with unlisted
@@ -193,19 +202,19 @@ def test_upload_video_overrides_public_to_unlisted(mock_google_apis):
 
 
 def test_upload_video_allows_private_when_unlisted_enforced(mock_google_apis):
-    with env_vars({
-        SOFT_LIVE_ENABLED_VAR: "true",
-        SOFT_LIVE_YOUTUBE_MODE_VAR: "unlisted"
-    }):
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("pathlib.Path.is_file", return_value=True):
-
+    with env_vars(
+        {SOFT_LIVE_ENABLED_VAR: "true", SOFT_LIVE_YOUTUBE_MODE_VAR: "unlisted"}
+    ):
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.is_file", return_value=True),
+        ):
             upload_video(
                 mp4_path=Path("video.mp4"),
                 title="test",
                 description="desc",
                 tags=[],
-                privacy_status="private" # Request PRIVATE (stricter than unlisted)
+                privacy_status="private",  # Request PRIVATE (stricter than unlisted)
             )
 
             # Should remain private
@@ -216,15 +225,16 @@ def test_upload_video_allows_private_when_unlisted_enforced(mock_google_apis):
 
 def test_upload_video_disabled_soft_live_respects_input(mock_google_apis):
     with env_vars({SOFT_LIVE_ENABLED_VAR: "false"}):
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("pathlib.Path.is_file", return_value=True):
-
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.is_file", return_value=True),
+        ):
             upload_video(
                 mp4_path=Path("video.mp4"),
                 title="test",
                 description="desc",
                 tags=[],
-                privacy_status="public"
+                privacy_status="public",
             )
 
             # Should remain public
