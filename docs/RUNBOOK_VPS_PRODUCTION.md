@@ -131,6 +131,11 @@
 
 ## 4. One-Time Setup (First Deploy)
 
+> [!IMPORTANT]
+> **AUDIT REQUIREMENT**: This setup MUST be performed manually by a human operator.
+> **DO NOT** use automated scripts that SSH into production servers.
+> Every command executed must be auditable and performed explicitly.
+
 ### 4.1 Create folder
 
 ```bash
