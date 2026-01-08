@@ -102,14 +102,19 @@ steps:
     needs: [seo_metadata]
     output: decision_support_summary.json
 
+  - id: approval_gate
+    uses: approval.gate
+    needs: [decision_support]
+    output: approval_gate_summary.json
+
   - id: notify_webhook
     uses: notify.webhook
-    needs: [decision_support]
+    needs: [approval_gate]
     output: notify_summary.json
 
   - id: multi_channel
     uses: MultiChannelPublish
-    needs: [seo_metadata]
+    needs: [seo_metadata, approval_gate]
     input_from: metadata.json
     output: multi_channel.json
 
