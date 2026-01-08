@@ -245,7 +245,7 @@ Total Size: ~1.5 GB (including PyTorch)
 
 ## 🎊 Congratulations!
 
-**ระบบ Dhamma Channel Automation พร้อมใช้งานแล้ว!** 🚀✨
+**ระบบ FlowBiz Client Dhamma พร้อมใช้งานแล้ว!** 🚀✨
 
 ทุกองค์ประกอบหลักทำงานได้สมบูรณ์:
 - ✅ การติดตั้งสำเร็จ
@@ -254,7 +254,7 @@ Total Size: ~1.5 GB (including PyTorch)
 - ✅ Tests ผ่านหมด
 - ✅ เอกสารครบถ้วน
 
-**ขอบคุณที่ใช้งาน Dhamma Channel Automation!** 🙏
+**ขอบคุณที่ใช้งาน FlowBiz Client Dhamma!** 🙏
 
 ---
 

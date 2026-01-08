@@ -1,5 +1,5 @@
 """
-automation_core - โมดูลหลักสำหรับระบบ Dhamma Automation
+automation_core - โมดูลหลักสำหรับระบบ FlowBiz Automation
 
 ประกอบด้วย:
 - BaseAgent: คลาสพื้นฐานสำหรับ AI Agents ทั้งหมด
@@ -9,8 +9,8 @@ automation_core - โมดูลหลักสำหรับระบบ Dham
 - Utils: ฟังก์ชันช่วยเหลือต่างๆ
 """
 
-__version__ = "0.1.0"
-__author__ = "Dhamma Automation Team"
+__version__ = "1.0.0"
+__author__ = "FlowBiz Team"
 
 from .base_agent import BaseAgent
 from .config import AppConfig

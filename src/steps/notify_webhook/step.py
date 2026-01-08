@@ -239,7 +239,7 @@ def run(step: dict, run_dir: Path) -> str:
     payload = json.dumps({"content": message_body}).encode("utf-8")
     headers = {
         "Content-Type": "application/json",
-        "User-Agent": "DhammaChannelAutomation/1.0",
+        "User-Agent": "FlowBizClientDhamma/1.0",
     }
 
     summary_status = "sent"
