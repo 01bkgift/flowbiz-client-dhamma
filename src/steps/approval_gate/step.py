@@ -174,17 +174,12 @@ def run_approval_gate(
     config_grace_minutes: int
 
     try:
-        # Priority 4: CHECK CONFIG VALIDITY (Moved up for var init, but logic order preserved)
-        # We need validation before we can really proceed
-        try:
-            config_grace_minutes = int(env_grace)
-        except ValueError:
-            raise ValueError("Not an integer") from None
-
+        # Priority 4: CHECK CONFIG VALIDITY
+        config_grace_minutes = int(env_grace)
         if not (1 <= config_grace_minutes <= 1440):
-            raise ValueError("Out of range")
+            raise ValueError("Value must be between 1 and 1440.")
 
-    except ValueError:
+    except ValueError as e:
         # Failsafe Reject
         summary = ApprovalGateSummary(
             run_id=run_id,
@@ -197,7 +192,7 @@ def run_approval_gate(
             evaluation_count=eval_count,
         )
         summary_path.write_text(summary.model_dump_json(indent=2), encoding="utf-8")
-        raise ApprovalRejectedError("Invalid APPROVAL_GRACE_MINUTES") from None
+        raise ApprovalRejectedError(f"Invalid APPROVAL_GRACE_MINUTES: {e}") from None
 
     # Priority 3: CHECK CANCEL FILE
     if cancel_file_path.exists():
