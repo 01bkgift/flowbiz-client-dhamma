@@ -5,12 +5,18 @@ steps:
     uses: decision.support
     output: decision_support_summary.json
 
+  - id: approval_gate
+    uses: approval.gate
+    needs: [decision_support]
+    output: approval_gate_summary.json
+
   - id: notify_webhook
     uses: notify.webhook
-    needs: [decision_support]
+    needs: [approval_gate]
     output: notify_summary.json
 
   - id: youtube_upload
     uses: youtube.upload
+    needs: [approval_gate]
     config:
       dry_run: true

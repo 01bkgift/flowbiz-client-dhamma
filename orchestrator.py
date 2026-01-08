@@ -35,6 +35,11 @@ from automation_core.adapters import (  # noqa: E402
 )
 from automation_core.adapters.noop import NoopAdapter  # noqa: E402
 from automation_core.utils.env import parse_pipeline_enabled  # noqa: E402
+from steps.approval_gate import (  # noqa: E402
+    ApprovalPendingHold,
+    ApprovalRejectedError,
+    run_approval_gate,
+)
 from steps.decision_support import run_decision_support  # noqa: E402
 from steps.notify_webhook import step as notify_step  # noqa: E402
 
@@ -3757,6 +3762,7 @@ AGENTS = {
     "MultiChannelPublish": agent_multi_channel_publish,
     "SchedulingPublishing": agent_publish,
     "decision.support": run_decision_support,
+    "approval.gate": run_approval_gate,
     "notify.webhook": notify_step.run,
 }
 
@@ -3939,6 +3945,21 @@ def run_pipeline(pipeline_path: Path, run_id: str):
 
         try:
             result = agent_func(step, run_dir)
+        except ApprovalPendingHold as e:
+            # Graceful stop for manual approval or wait
+            log(f"⏸ Pipeline HELD at {step_id}: {e}", "WARNING")
+            results[step_id] = {"status": "held", "reason": str(e)}
+            # Do NOT mark as failure, but stop pipeline
+            break
+        except ApprovalRejectedError as e:
+            # Hard stop for rejection
+            log(f"⛔ Pipeline REJECTED at {step_id}: {e}", "ERROR")
+            results[step_id] = {"status": "rejected", "reason": str(e)}
+            break
+
+        try:
+            # Continue with normal success processing assuming result is valid
+            pass  # result already set above
             output_path = result
             planned_paths = None
             if isinstance(result, PlannedArtifacts):
