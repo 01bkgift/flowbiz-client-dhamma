@@ -236,10 +236,13 @@ def upload_video(
             # Derive run_dir from mp4_path for content fingerprinting
             # Pattern: output/<run_id>/artifacts/video.mp4
             run_dir = None
-            if "artifacts" in mp4_path.parts:
+            try:
                 artifacts_idx = mp4_path.parts.index("artifacts")
                 if artifacts_idx > 0:
                     run_dir = Path(*mp4_path.parts[:artifacts_idx])
+            except ValueError:
+                # "artifacts" is not in the path, run_dir remains None.
+                pass
             return _generate_deterministic_fake_id(title, "dry_run", run_dir)
 
         # Map modes to severity: private=0, unlisted=1, public=2
