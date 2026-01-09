@@ -530,9 +530,9 @@ docker compose --env-file config/flowbiz_port.env logs --since 720h > container_
 
 **ข้อมูล SSH:**
 
-- **Hostname/IP:** 72.62.69.117
+- **Hostname/IP:** <VPS_IP_ADDRESS>
 - **SSH Port:** 22
-- **User:** root
+- **User:** <your_user>
 - **Identity File:** `~/.ssh/id_ed25519_flowbiz` (Ed25519)
 
 **การตั้งค่า `~/.ssh/config` (Recommended):**
@@ -541,11 +541,11 @@ docker compose --env-file config/flowbiz_port.env logs --since 720h > container_
 
 ```ssh
 Host flowbiz-vps
-  HostName 72.62.69.117
-  User root
+  HostName <VPS_IP_ADDRESS>
+  User <your_user>
   Port 22
   IdentityFile ~/.ssh/id_ed25519_flowbiz
-  StrictHostKeyChecking accept-new
+  StrictHostKeyChecking yes
 ```
 
 **การใช้งาน:**

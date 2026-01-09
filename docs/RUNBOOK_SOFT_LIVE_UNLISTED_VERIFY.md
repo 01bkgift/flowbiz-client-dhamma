@@ -24,13 +24,13 @@
 ### 1. ตรวจสอบ Service Health
 
 ```bash
-curl -fsS https://flowbiz-client-dhamma.com/healthz
+curl -fsS https://dhamma.flowbiz.cloud/healthz
 ```
 
 **Expected:**
 
 ```json
-{"status":"ok","service":"flowbiz-client-dhamma",...}
+{"status":"ok","service":"dhamma-automation",...}
 ```
 
 > [!WARNING]
@@ -39,7 +39,7 @@ curl -fsS https://flowbiz-client-dhamma.com/healthz
 ### 2. ตรวจสอบ Meta Endpoint
 
 ```bash
-curl -fsS https://flowbiz-client-dhamma.com/v1/meta
+curl -fsS https://dhamma.flowbiz.cloud/v1/meta
 ```
 
 ### 3. ตรวจสอบ Docker Container
@@ -132,9 +132,7 @@ YOUTUBE_UPLOAD_ENABLED=true
 ### 2. Restart Containers
 
 ```bash
-```bash
 docker compose --env-file config/flowbiz_port.env up -d --build --remove-orphans
-```
 ```
 
 ### 3. ยืนยัน Health หลัง Restart
@@ -257,7 +255,7 @@ cat output/${RUN_ID}/artifacts/approval_gate_summary.json | jq '.status'
 2. ตรวจสอบว่าไม่มีไฟล์ cancel:
 
    ```bash
-   ls output/${RUN_ID}/control/cancel_publish.json 2>/dev/null && echo "CANCEL EXISTS" || echo "OK - No cancel"
+   [ -f "output/${RUN_ID}/control/cancel_publish.json" ] && echo "CANCEL EXISTS" || echo "OK - No cancel"
    ```
 
 3. รัน pipeline อีกครั้งหรือรอ orchestrator retry
@@ -348,8 +346,8 @@ cp output/${RUN_ID}/artifacts/* "${EVIDENCE_DIR}/"
 docker compose --env-file config/flowbiz_port.env logs --tail 200 > "${EVIDENCE_DIR}/docker_logs.txt"
 
 # Export health checks
-curl -fsS https://flowbiz-client-dhamma.com/healthz > "${EVIDENCE_DIR}/healthz.json"
-curl -fsS https://flowbiz-client-dhamma.com/v1/meta > "${EVIDENCE_DIR}/meta.json"
+curl -fsS https://dhamma.flowbiz.cloud/healthz > "${EVIDENCE_DIR}/healthz.json"
+curl -fsS https://dhamma.flowbiz.cloud/v1/meta > "${EVIDENCE_DIR}/meta.json"
 
 # Export container status
 docker compose --env-file config/flowbiz_port.env ps > "${EVIDENCE_DIR}/docker_ps.txt"
