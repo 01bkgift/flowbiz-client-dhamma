@@ -132,7 +132,9 @@ YOUTUBE_UPLOAD_ENABLED=true
 ### 2. Restart Containers
 
 ```bash
-docker compose --env-file config/flowbiz_port.env up -d --remove-orphans
+```bash
+docker compose --env-file config/flowbiz_port.env up -d --build --remove-orphans
+```
 ```
 
 ### 3. ยืนยัน Health หลัง Restart
@@ -196,7 +198,8 @@ fi
 
 ```bash
 cd /opt/flowbiz-client-dhamma
-python orchestrator.py \
+# รันภายใน container เพื่อให้มี fonts และ ffmpeg
+docker compose --env-file config/flowbiz_port.env exec web python orchestrator.py \
   --pipeline pipelines/youtube_upload_smoke_requires_quality.yaml \
   --run-id "${RUN_ID}"
 ```

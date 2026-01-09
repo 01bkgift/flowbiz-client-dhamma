@@ -250,8 +250,8 @@ git reset --hard origin/main
 # Run deploy verification (ไม่ใช่ preflight.sh)
 bash scripts/runtime_verify.sh
 
-# Start containers
-docker compose --env-file config/flowbiz_port.env up -d --remove-orphans
+# Start containers (Build to ensure fonts/deps are updated)
+docker compose --env-file config/flowbiz_port.env up -d --build --remove-orphans
 
 # Verify containers running
 docker compose --env-file config/flowbiz_port.env ps
@@ -300,9 +300,13 @@ ss -lntp | grep "${FLOWBIZ_ALLOCATED_PORT}"
 
 ### Command
 
+### Command
+
 ```bash
 cd /opt/flowbiz-client-dhamma
-python scripts/run_pipeline.py --pipeline pipelines/youtube_upload_smoke_requires_quality.yaml
+# Must run inside container to access ffmpeg and fonts
+docker compose --env-file config/flowbiz_port.env exec web python orchestrator.py \
+  --pipeline pipelines/youtube_upload_smoke_requires_quality.yaml
 ```
 
 ### Expected Behavior
