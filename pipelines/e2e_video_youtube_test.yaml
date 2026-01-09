@@ -21,9 +21,13 @@ steps:
       bg_color: "#1a1a2e"
       broll_dir: "broll"
 
+  - id: post_templates
+    uses: post.templates
+    needs: [video_render]
+
   - id: quality_gate
     uses: quality.gate
-    needs: [video_render]
+    needs: [post_templates]
     config:
       min_duration_sec: 1
       max_duration_sec: 300
