@@ -83,7 +83,7 @@ def run_test(run_id: str, dry_run: bool = False):
     
     # Inject Pipeline Params for post_templates validation
     env["PIPELINE_PARAMS_JSON"] = json.dumps({
-        "platform": "YouTube",
+        "platform": "youtube",
         "title": "E2E Test Video",
         "lang": "th",
         "description": "E2E Test Video Description"
@@ -97,7 +97,7 @@ def run_test(run_id: str, dry_run: bool = False):
     metadata_content = {
         "title": "E2E Test Video",
         "description": "Auto-generated E2E test video",
-        "platform": "YouTube",
+        "platform": "youtube",
         "language": "th"
     }
     metadata_path.write_text(json.dumps(metadata_content, indent=2), encoding="utf-8")
