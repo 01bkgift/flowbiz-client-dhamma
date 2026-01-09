@@ -11,6 +11,7 @@ This guide covers production deployment of the Dhamma Channel Automation service
 | Document | Purpose |
 |----------|---------|
 | [**RUNBOOK_VPS_PRODUCTION.md**](./RUNBOOK_VPS_PRODUCTION.md) | Single source of truth สำหรับ deploy/operate/recover |
+| [RUNBOOK_SOFT_LIVE_UNLISTED_VERIFY.md](./RUNBOOK_SOFT_LIVE_UNLISTED_VERIFY.md) | Soft-Live unlisted verification runbook |
 | [DEPLOYMENT_FLOWBIZ_VPS.md](./DEPLOYMENT_FLOWBIZ_VPS.md) | VPS architecture overview |
 | [OPS_CHECKLIST.md](./OPS_CHECKLIST.md) | Daily/weekly ops checklist |
 | [SECURITY_DEPLOYMENT_NOTES.md](./SECURITY_DEPLOYMENT_NOTES.md) | SOC2/ISO security notes |
