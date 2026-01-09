@@ -81,6 +81,14 @@ def run_test(run_id: str, dry_run: bool = False):
     env["SOFT_LIVE_FAIL_CLOSED"] = "true"
     env["PIPELINE_DRY_RUN"] = "true" if dry_run else "false"
     
+    # Inject Pipeline Params for post_templates validation
+    env["PIPELINE_PARAMS_JSON"] = json.dumps({
+        "platform": "YouTube",
+        "title": "E2E Test Video",
+        "lang": "th",
+        "description": "E2E Test Video Description"
+    })
+    
     # Ensure assets and fixtures exist
     fixture_path = ROOT_DIR / "scripts" / "test_fixtures" / "e2e_voiceover_script.txt"
     if not fixture_path.exists():
