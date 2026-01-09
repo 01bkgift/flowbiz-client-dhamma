@@ -189,7 +189,7 @@ cat output/${RUN_ID}/artifacts/approval_gate_summary.json | jq '.status'
 2. ตรวจสอบว่าไม่มีไฟล์ cancel:
 
    ```bash
-   ls output/${RUN_ID}/control/cancel_publish.json 2>/dev/null && echo "CANCEL EXISTS" || echo "OK - No cancel"
+   [ -f "output/${RUN_ID}/control/cancel_publish.json" ] && echo "CANCEL EXISTS" || echo "OK - No cancel"
    ```
 
 3. รัน pipeline อีกครั้งหรือรอ orchestrator retry
