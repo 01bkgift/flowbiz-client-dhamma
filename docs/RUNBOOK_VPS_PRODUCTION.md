@@ -512,7 +512,40 @@ docker compose --env-file config/flowbiz_port.env logs --since 720h > container_
 | Doc | Description |
 |---|---|
 | [**RUNBOOK_VPS_PRODUCTION.md**](./RUNBOOK_VPS_PRODUCTION.md) | Single source of truth สำหรับ deploy/operate/recover |
+| [RUNBOOK_SOFT_LIVE_UNLISTED_VERIFY.md](./RUNBOOK_SOFT_LIVE_UNLISTED_VERIFY.md) | Runbook สำหรับ verify Soft-Live unlisted mode |
 | [DEPLOYMENT_FLOWBIZ_VPS.md](./DEPLOYMENT_FLOWBIZ_VPS.md) | VPS architecture overview |
 | [OPS_CHECKLIST.md](./OPS_CHECKLIST.md) | Daily/weekly ops checklist |
 | [SECURITY_DEPLOYMENT_NOTES.md](./SECURITY_DEPLOYMENT_NOTES.md) | SOC2/ISO security notes |
 | [.github/workflows/deploy-vps.yml](../.github/workflows/deploy-vps.yml) | GitHub Actions CI/CD workflow |
+
+---
+
+## 13. Appendix: SSH Access Setup
+
+สำหรับ Developer หรือ Agent ที่ต้องการ SSH เข้า VPS (ต้องได้รับอนุญาตและมี Key)
+
+**ข้อมูล SSH:**
+
+- **Hostname/IP:** <VPS_IP_ADDRESS>
+- **SSH Port:** 22
+- **User:** <your_user>
+- **Identity File:** `~/.ssh/id_ed25519_flowbiz` (Ed25519)
+
+**การตั้งค่า `~/.ssh/config` (Recommended):**
+
+เพิ่มเนื้อหาต่อไปนี้ลงในไฟล์ `~/.ssh/config` ของคุณ:
+
+```ssh
+Host flowbiz-vps
+  HostName <VPS_IP_ADDRESS>
+  User <your_user>
+  Port 22
+  IdentityFile ~/.ssh/id_ed25519_flowbiz
+  StrictHostKeyChecking yes
+```
+
+**การใช้งาน:**
+
+```bash
+ssh flowbiz-vps
+```
