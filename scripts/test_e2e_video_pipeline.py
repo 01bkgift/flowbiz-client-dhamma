@@ -137,7 +137,7 @@ def run_test(run_id: str, dry_run: bool = False):
         "language": "th"
     }
     metadata_path.write_text(json.dumps(metadata_content, indent=2), encoding="utf-8")
-    print(f"Pre-created metadata.json at {metadata_path}")
+    log(f"Pre-created metadata.json at {metadata_path}")
     
     # Ensure assets and fixtures exist
     fixture_path = ROOT_DIR / "scripts" / "test_fixtures" / "e2e_voiceover_script.txt"
