@@ -188,9 +188,10 @@ def run_test(run_id: str, dry_run: bool = False):
             mp4_rel_path = video_data.get("output_mp4_path")
             if mp4_rel_path:
                 output_mp4_full_path = ROOT_DIR / mp4_rel_path
-                all_passed &= assert_file_exists(output_mp4_full_path, "Output MP4 File")
+                mp4_file_exists = assert_file_exists(output_mp4_full_path, "Output MP4 File")
+                all_passed &= mp4_file_exists
                 # After checking file existence, check properties
-                if all_passed: # Only check properties if file existence is confirmed
+                if mp4_file_exists:
                     all_passed &= check_video_properties(output_mp4_full_path)
             else:
                 log("FAIL: output_mp4_path missing in video_render_summary.json", "ERROR")
