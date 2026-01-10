@@ -66,8 +66,8 @@ def assert_json_field(path: Path, field: str, expected_value, description: str):
         
         log(f"PASS: {description} (Field '{field}' == '{expected_value}')", "INFO")
         return True
-    except Exception as e:
-        log(f"FAIL: Error reading {description}: {e}", "ERROR")
+    except (json.JSONDecodeError, OSError) as e:
+        log(f"FAIL: Error reading or parsing {description}: {e}", "ERROR")
         return False
 
 
