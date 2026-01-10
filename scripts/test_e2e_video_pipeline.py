@@ -122,8 +122,15 @@ def check_video_properties(video_path: Path):
 def run_test(run_id: str, dry_run: bool = False):
     log(f"Starting E2E Video Pipeline Test with Run ID: {run_id}")
 
-    # 1. Setup Environment
+    # Add local ffmpeg to PATH if it exists
+    local_ffmpeg = ROOT_DIR / "external" / "ffmpeg"
+    if local_ffmpeg.exists():
+        os.environ["PATH"] = str(local_ffmpeg) + os.pathsep + os.environ.get("PATH", "")
+        log(f"Added local ffmpeg to PATH: {local_ffmpeg}")
+
+    # Setup Environment for orchestrator
     env = os.environ.copy()
+
     env["SOFT_LIVE_ENABLED"] = "true"
     env["SOFT_LIVE_YOUTUBE_MODE"] = "dry_run"
     env["SOFT_LIVE_FAIL_CLOSED"] = "true"
