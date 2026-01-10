@@ -167,12 +167,15 @@ echo "Run ID: ${RUN_ID}"
 mkdir -p output/${RUN_ID}/artifacts
 
 # 2. สร้าง Mock Quality Gate Summary (เพื่อให้ Decision Support ผ่าน)
-cat > output/${RUN_ID}/artifacts/quality_gate_summary.json << 'EOF'
+cat > output/${RUN_ID}/artifacts/quality_gate_summary.json << EOF
 {
   "run_id": "${RUN_ID}",
-  "status": "passed",
-  "passed_checks": 3,
-  "failed_checks": 0,
+  "decision": "pass",
+  "checks": [
+    {"name": "video_exists", "passed": true},
+    {"name": "audio_exists", "passed": true},
+    {"name": "duration_valid", "passed": true}
+  ],
   "video_duration_sec": 30,
   "video_size_bytes": 1024000
 }
@@ -194,6 +197,8 @@ fi
 > [!NOTE]
 > ใช้ `orchestrator.py` (แทน `run_pipeline.py`) เพื่อรองรับ `--run-id`
 
+**ทางเลือก A: Smoke Test Pipeline (ต้องสร้าง Mock Artifacts ก่อน)**
+
 ```bash
 cd /opt/flowbiz-client-dhamma
 # รันภายใน container เพื่อให้มี fonts และ ffmpeg
@@ -201,6 +206,17 @@ docker compose --env-file config/flowbiz_port.env exec web python orchestrator.p
   --pipeline pipelines/youtube_upload_smoke_requires_quality.yaml \
   --run-id "${RUN_ID}"
 ```
+
+**ทางเลือก B: E2E Full Pipeline (แนะนำ — ไม่ต้องสร้าง Mock)**
+
+```bash
+cd /opt/flowbiz-client-dhamma
+docker compose --env-file config/flowbiz_port.env exec web \
+  python scripts/test_e2e_video_pipeline.py --run-id "${RUN_ID}"
+```
+
+> [!TIP]
+> E2E test script จะสร้าง artifacts ทั้งหมดให้อัตโนมัติ รวมถึง video และ quality gate
 
 ### 4. Output Location
 
