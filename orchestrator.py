@@ -1698,68 +1698,44 @@ def agent_seo_metadata(step, run_dir: Path):
     return out
 
 
-def agent_data_enrichment(step, run_dir: Path):
-    """Data Enrichment - เพิ่มข้อมูลเสริมจากแหล่งต่างๆ"""
-    in_path = run_dir / step["input_from"]
-    out = run_dir / step["output"]
-
-    data = read_json(in_path)
-    topic = data["topic"]
-
-    # เพิ่มข้อมูลเสริม
-    enriched = {
-        "enriched_at": datetime.now().isoformat(),
-        "topic": topic,
-        "original_research": data,
-        "additional_context": {
-            "historical_background": {
-                "period": "พุทธกาล (พ.ศ. 80-543)",
-                "location": "อินเดียตะวันออกเฉียงเหนือ",
-                "relevance": "อานาปานสติเป็นหนึ่งในกรรมฐานที่พระพุทธเจ้าทรงใช้ตรัสรู้",
-            },
-            "modern_research": [
-                {
-                    "study": "Effects of Mindfulness on Stress Reduction",
-                    "institution": "มหาวิทยาลัยมหิดล",
-                    "year": 2023,
-                    "finding": "ลดความเครียดได้ 30% ใน 4 สัปดาห์",
-                },
-                {
-                    "study": "Breath-focused meditation and brain activity",
-                    "institution": "Harvard Medical School",
-                    "year": 2022,
-                    "finding": "เพิ่มการทำงานของ prefrontal cortex",
-                },
-            ],
-            "related_practices": ["วิปัสสนากรรมฐาน", "สมถภาวนา", "พรหมวิหาร 4"],
-            "common_misconceptions": [
-                {"myth": "ต้องนั่งสมาธินาน ๆ ถึงจะได้ผล", "truth": "ฝึกสั้นแต่สม่ำเสมอดีกว่า"},
-                {"myth": "สติคือการไม่คิดอะไรเลย", "truth": "สติคือการรับรู้ปัจจุบันอย่างตั้งใจ"},
-            ],
-            "practical_tips": [
-                "เริ่มต้น 2-3 นาทีก่อน ค่อยเพิ่ม",
-                "เลือกเวลาเดิมทุกวัน (เช่น หลังตื่นนอน)",
-                "ไม่ต้องโกรธตัวเองเมื่อใจฟุ้ง",
-                "ใช้แอพช่วยเตือน (optional)",
-            ],
-            "cultural_context": {
-                "thai_buddhism": "ในพุทธศาสนาไทยนิยมฝึกอานาปานสติในวัด",
-                "daily_practice": "สามารถนำไปใช้ในชีวิตประจำวันได้",
-                "festivals": "วันมาฆบูชา, อาสาฬหบูชา เหมาะกับการฝึก",
-            },
-        },
-        "fact_check": {
-            "verified": True,
-            "sources_count": len(data.get("citations", [])),
-            "credibility_score": 9.5,
-        },
+def run_data_enrichment_step(step: dict, run_dir: Path) -> Path:
+    """Wrapper for DataEnrichmentStep class with input_from support"""
+    from steps.data_enrichment import DataEnrichmentStep
+    
+    config = step.get("config", {})
+    
+    # Handle input_from (file from previous step)
+    input_from = step.get("input_from")
+    input_file = ""
+    if input_from:
+        path_direct = run_dir / input_from
+        path_artifacts = run_dir / "artifacts" / input_from
+        
+        if path_direct.exists():
+            input_file = str(path_direct)
+        elif path_artifacts.exists():
+            input_file = str(path_artifacts)
+        else:
+            input_file = str(path_direct)
+    
+    # Direct items from input
+    items = step.get("input", {}).get("items", [])
+    
+    context = {
+        "input_file": input_file,
+        "items": items,
+        "output_dir": str(run_dir / "artifacts"),
+        "data_type": config.get("data_type", "video"),
+        "enrichment_schema": step.get("input", {}).get("enrichment_schema") or config.get("enrichment_schema"),
+        "min_confidence_pct": step.get("input", {}).get("min_confidence_pct") or config.get("min_confidence_pct", 70),
     }
-
-    write_json(out, enriched)
-    log(
-        f"✓ Data Enrichment completed - Added {len(enriched['additional_context'])} context categories"
-    )
-    return out
+    
+    result = DataEnrichmentStep().execute(context)
+    
+    if result["status"] == "success":
+        return Path(result["output_file"])
+    else:
+        raise RuntimeError(f"DataEnrichment failed: {result.get('error', 'Unknown error')}")
 
 
 def agent_legal_compliance(step, run_dir: Path):
@@ -3865,7 +3841,7 @@ AGENTS = {
     "TrendScout": run_trend_scout_step,
     "TopicPrioritizer": run_topic_prioritizer_step,
     "ResearchRetrieval": run_research_retrieval_step,
-    "DataEnrichment": agent_data_enrichment,
+    "DataEnrichment": run_data_enrichment_step,
     "ScriptOutline": agent_script_outline,
     "ScriptWriter": agent_script_writer,
     "DoctrineValidator": agent_doctrine_validator,

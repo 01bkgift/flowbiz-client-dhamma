@@ -1,0 +1,21 @@
+pipeline: smoke-data-enrichment
+version: 1.0
+description: Smoke test for DataEnrichment step
+
+steps:
+  - id: data_enrichment
+    uses: DataEnrichment
+    input:
+      items:
+        - id: "V001"
+          title: "ปล่อยวางก่อนหลับ"
+          description: "คลิปสอนวิธีปล่อยวางความกังวลและทำสมาธิก่อนนอน"
+        - id: "V002"
+          title: "สมาธิสั้นในวัยรุ่น"
+          description: "แนวทางแก้ปัญหาสมาธิสั้นสำหรับวัยรุ่น"
+      enrichment_schema:
+        - keyword
+        - entity
+        - context
+      min_confidence_pct: 70
+    output: data_enrichment.json
