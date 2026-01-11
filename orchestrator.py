@@ -44,6 +44,7 @@ from steps.decision_support import run_decision_support  # noqa: E402
 from steps.notify_webhook import step as notify_step  # noqa: E402
 from steps.soft_live_enforce import run_soft_live_enforce  # noqa: E402
 from steps.trend_scout import TrendScoutStep  # noqa: E402
+from steps.topic_prioritizer import TopicPrioritizerStep  # noqa: E402
 
 POST_TEMPLATES_ALIASES = {"post_templates", "post.templates"}
 
@@ -3756,6 +3757,37 @@ def run_trend_scout_step(step: dict, run_dir: Path) -> Path:
         raise RuntimeError(f"TrendScout failed: {result.get('error', 'Unknown error')}")
 
 
+def run_topic_prioritizer_step(step: dict, run_dir: Path) -> Path:
+    """Wrapper for TopicPrioritizerStep class-based step"""
+    config = step.get("config", {})
+    
+    # Handle both direct path or relative to run_dir
+    input_from = step.get("input_from")
+    if input_from:
+        input_file = str(run_dir / input_from)
+    else:
+        # Fallback to config if input_from is missing
+        input_file = config.get("input_file", "data/mock_topics.json")
+        if not Path(input_file).is_absolute():
+             input_file = str(ROOT / input_file)
+
+    context = {
+        "input_file": input_file,
+        "output_dir": str(run_dir / "artifacts"),
+        "strategy_focus": config.get("strategy_focus", "evergreen_balance"),
+        "weeks": config.get("weeks", 4),
+        "longform_per_week": config.get("longform_per_week", 2),
+        "shorts_per_week": config.get("shorts_per_week", 4),
+    }
+
+    result = TopicPrioritizerStep().execute(context)
+
+    if result["status"] == "success":
+        return Path(result["output_file"])
+    else:
+        raise RuntimeError(f"TopicPrioritizer failed: {result.get('error', 'Unknown error')}")
+
+
 # ========== AGENT REGISTRY ==========
 
 AGENTS = {
@@ -3773,7 +3805,7 @@ AGENTS = {
     "BackupArchive": agent_backup_archive,
     # Video Workflow Phase
     "TrendScout": run_trend_scout_step,
-    "TopicPrioritizer": agent_topic_prioritizer,
+    "TopicPrioritizer": run_topic_prioritizer_step,
     "ResearchRetrieval": agent_research_retrieval,
     "DataEnrichment": agent_data_enrichment,
     "ScriptOutline": agent_script_outline,

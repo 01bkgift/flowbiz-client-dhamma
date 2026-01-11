@@ -1,0 +1,15 @@
+# Smoke test for TopicPrioritizer step
+pipeline: smoke_topic_prioritizer
+version: "1.0"
+description: Smoke test for TopicPrioritizer with mock data
+
+steps:
+  - id: topic_prioritizer
+    uses: TopicPrioritizer
+    config:
+      input_file: data/mock_topics.json
+      strategy_focus: fast_growth
+      weeks: 4
+      longform_per_week: 2
+      shorts_per_week: 4
+    output: topics_ranked.json
